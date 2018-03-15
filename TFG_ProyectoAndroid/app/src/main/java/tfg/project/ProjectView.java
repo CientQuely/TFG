@@ -11,6 +11,7 @@ import tfg.proyecto.R;
 public class ProjectView extends AppCompatActivity implements View {
 
     private Presenter presenter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
