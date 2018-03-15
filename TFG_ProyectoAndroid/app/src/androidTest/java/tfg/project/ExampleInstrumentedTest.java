@@ -1,4 +1,4 @@
-package tfg.proyecto;
+package tfg.project;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
@@ -20,7 +20,6 @@ public class ExampleInstrumentedTest {
     public void useAppContext() throws Exception {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
-
         assertEquals("tfg.proyecto", appContext.getPackageName());
     }
 }
