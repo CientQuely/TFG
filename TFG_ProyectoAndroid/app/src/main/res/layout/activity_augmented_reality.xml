@@ -6,9 +6,10 @@
     tools:context="tfg.project.view.AugmentedReality">
 
 
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="155dp"
-        android:layout_height="106dp"
-        android:text="TextView" />
+    <FrameLayout
+        android:id="@+id/camera_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    </FrameLayout>
 </FrameLayout>
