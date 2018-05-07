@@ -46,15 +46,19 @@
                                   <option name="values">
                                     <map>
                                       <entry key="assetType" value="IMAGE" />
-                                      <entry key="cropped" value="true" />
                                       <entry key="iconShape" value="NONE" />
-                                      <entry key="imageAsset" value="C:\Users\Micky\Desktop\TFG_Repositorio\TrabajoFinalDeGrado\TFG_ProyectoAndroid\img\menu_background.jpg" />
-                                      <entry key="outputName" value="menu_background" />
+                                      <entry key="imageAsset" value="C:\Users\Micky\Desktop\0a8a31a07ea245d.png" />
+                                      <entry key="outputName" value="button_start_icon" />
                                     </map>
                                   </option>
                                 </PersistentState>
                               </value>
                             </entry>
+                          </map>
+                        </option>
+                        <option name="values">
+                          <map>
+                            <entry key="outputIconType" value="LAUNCHER_LEGACY" />
                           </map>
                         </option>
                       </PersistentState>

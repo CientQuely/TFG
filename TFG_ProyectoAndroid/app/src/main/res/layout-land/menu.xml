@@ -23,7 +23,7 @@
             android:id="@+id/imageView"
             android:layout_width="match_parent"
             android:layout_height="139dp"
-            android:layout_marginTop="75dp"
+            android:layout_marginTop="20dp"
             android:background="@android:color/transparent"
             android:src="@drawable/menu_title" />
 
@@ -32,8 +32,8 @@
             android:layout_width="161dp"
             android:layout_height="62dp"
             android:layout_gravity="center"
+            android:layout_marginTop="85dp"
 
-            android:layout_marginTop="250dp"
             android:adjustViewBounds="true"
             android:background="@android:color/transparent"
             android:cropToPadding="false"
@@ -48,9 +48,9 @@
             android:layout_width="match_parent"
 
             android:layout_height="50dp"
-            android:layout_marginTop="60dp"
+            android:layout_marginTop="0dp"
             android:gravity="bottom"
-            android:text="Creador: Miquel Àngel Ramis Llompart \nProyecto de Final de Grado"
+            android:text="Creador: Miquel Àngel Ramis Llompart - Proyecto de Final de Grado"
 
             android:textAppearance="@style/TextAppearance.AppCompat.Inverse"
 
