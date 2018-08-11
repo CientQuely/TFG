@@ -6,12 +6,13 @@
     tools:context="uib.tfg.project.view.AugmentedReality">
 
 
-    <FrameLayout
-
+    <TextureView
         android:id="@+id/camera_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true">
 
-    </FrameLayout>
+    </TextureView>
 
 </FrameLayout>

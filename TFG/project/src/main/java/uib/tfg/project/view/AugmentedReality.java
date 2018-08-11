@@ -1,124 +1,114 @@
 package uib.tfg.project.view;
 
-import android.Manifest;
 import android.app.Activity;
-import android.content.Context;
 import android.content.pm.PackageManager;
-import android.hardware.Camera;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.widget.FrameLayout;
 import android.widget.Toast;
+import java.util.concurrent.Semaphore;
+import android.util.Log;
 
 import uib.tfg.project.R;
 import uib.tfg.project.presenter.Presenter;
 import uib.tfg.project.presenter.ProjectPresenter;
-import uib.tfg.project.view.view_exception.CAMERA_NOT_FOUND_EXCEPTION;
+import uib.tfg.project.view.camera.CameraView;
+
 
 public class AugmentedReality extends Activity implements View{
 
     private Presenter presentador;
+    private CameraView vistaCamara;
+    private final Semaphore mutex = new Semaphore(0);
+    private String TAG = "View/AugmentedReality";
+    protected static class Permissions {
+        static public boolean CAMERA_PERMISSION = false;
+        static public boolean GPS_PERMISSION = false;
+        static public boolean STORAGE_PERMISSION = false;
+        static public boolean SENSORS_PERMISSION = false;
 
-
-    private Camera camara;
-    private uib.tfg.project.view.CameraView vistaCamara;
+        static final int CAMERA_REQUEST = 0;
+        static final int GPS_REQUEST = 1;
+        static final int STORAGE_REQUEST = 2;
+        static final int SENSORS_REQUEST = 3;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        if (!obtainPermission()){
-            Toast.makeText(this, "Esta app no puede funcionar si no se aceptan" +
-                            "todos los permisos.",
-                    Toast.LENGTH_LONG).show();
-        }
-
-        try {
-            createCameraView();
-
-        } catch (CAMERA_NOT_FOUND_EXCEPTION c) {
-            Toast.makeText(this, "Error: Camera not found in this device",
-                    Toast.LENGTH_LONG).show();
-        }
-
-
-
-        setContentView(R.layout.activity_augmented_reality);
-
-        FrameLayout frame = findViewById(R.id.camera_view);
-        frame.addView(vistaCamara);
-
         presentador = new ProjectPresenter(this);
+
+        //Se encarga de obtener todos los permisos
+        if(!hasFeatures() && !hasAllPermissions()) {
+             Toast.makeText(this, "Esta app no puede funcionar si no se aceptan" +
+                                "todos los permisos.",
+                        Toast.LENGTH_LONG).show();
+             setContentView(R.layout.menu);
+             return;
+        }
+        setContentView(R.layout.activity_augmented_reality);
+        //Crea la vista de la camara
+        vistaCamara = new CameraView(this, this.findViewById(R.id.camera_view), "View/Camera/CameraView");
     }
 
-    private boolean obtainPermission() {
-
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED){
-
-            if(ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.CAMERA)) {
-
-            }else{
-
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.CAMERA}, 0
-                );
-
+    private boolean hasFeatures() {
+        return true;
+    }
+    private boolean hasAllPermissions() {
+        try{
+            //CAMERA PERMISSION
+            if(!CameraView.hasCameraPermission(this)) {
+                CameraView.requestCameraPermission(this, Permissions.CAMERA_REQUEST);
+                mutex.acquire();
+                if(!Permissions.CAMERA_PERMISSION){
+                    Log.w(TAG,"Camera permission not granted");
+                    return false;
+                }
             }
+        }catch(InterruptedException ie){
+            Log.e(TAG,"Program interrupted while checking permissions");
         }
         return true;
     }
 
+
     protected void onPause() {
         super.onPause();
-        releaseCamera();
+        //liberar componentes
     }
 
-    private void createCameraView() throws CAMERA_NOT_FOUND_EXCEPTION{
 
-        if(!checkCamera(getApplicationContext())) throw new CAMERA_NOT_FOUND_EXCEPTION();
-
-        camara = obtainCamera();
-        if(camara == null ){
-            Toast.makeText(this, "Error: Camera is in use by other program",
-                    Toast.LENGTH_LONG).show();
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[],
+                                           int[] grantResults){
+        boolean hasPermissions = false;
+        if(grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+            hasPermissions = true;
+        switch(requestCode){
+            case Permissions.CAMERA_REQUEST:
+                Permissions.CAMERA_PERMISSION = hasPermissions;
+                break;
+            case Permissions.GPS_REQUEST:
+                Permissions.GPS_PERMISSION = hasPermissions;
+                break;
+            case Permissions.STORAGE_REQUEST:
+                Permissions.STORAGE_PERMISSION = hasPermissions;
+                break;
+            case Permissions.SENSORS_REQUEST:
+                Permissions.SENSORS_PERMISSION = hasPermissions;
+                break;
         }
-
-        vistaCamara = new CameraView(this, camara);
+        mutex.release();
     }
 
-    /** Comprueba que la cámara existe*/
-    private boolean checkCamera(Context context) {
-        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)){
-            // tiene cámara
-            return true;
+    @Override
+    public void onResume(){
+        super.onResume();
+
+        if(vistaCamara.cameraAvailable()){
+
         } else {
-            return false;
-        }
-    }
-
-    /** Obtiene una instancia de la cámara */
-    public static Camera obtainCamera() throws RuntimeException{
-        Camera c = null;
-        try {
-            //Obtiene el control de la cámara trasera del dispositivo
-            c = Camera.open(0);
-        }
-        catch (RuntimeException re){
-        }
-        return c; // returns null if camera is unavailable
-    }
-
-    /**
-     * Libera la cámara del control de esta app
-     */
-    private void releaseCamera(){
-        if (camara != null){
-            camara.release();
-            camara = null;
+            vistaCamara.setCamSurfaceTextureListener();
         }
     }
 
