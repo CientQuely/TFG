@@ -1,4 +1,4 @@
-package uib.tfg.project.view.camera;
+package uib.tfg.project.view;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -10,6 +10,7 @@ import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.*;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.util.Size;
@@ -26,15 +27,17 @@ import java.util.Comparator;
 import java.util.List;
 
 
+import uib.tfg.project.view.Permits;
+
 import static android.content.Context.CAMERA_SERVICE;
 
 
-public class CameraView {
+public class CameraView extends Thread{
     private Context appContext;
     private String TAG;
     ;
     private Size cameraPreviewSize;
-    private TextureView cameraTextureView;
+    private volatile TextureView cameraTextureView;
     private String cameraId;
     private CameraDevice camera;
     CameraCharacteristics camCharacts;
@@ -63,8 +66,12 @@ public class CameraView {
 
                 @Override
                 public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+                    if(camera != null){
+                        camera.close();
+                        camera = null;
+                    }
                     Log.i(TAG,"CameraTexture Destroyed");
-                    return true;
+                    return false;
                 }
 
                 @Override
@@ -86,6 +93,7 @@ public class CameraView {
             Log.w(TAG, "Camera disconected");
             camera.close();
             camera = null;
+            interrupt();
         }
 
         @Override
@@ -93,6 +101,8 @@ public class CameraView {
             Log.e(TAG, "Error on camera: " + error);
             camera.close();
             camera = null;
+            interrupt();
+
         }
 
     };
@@ -108,10 +118,8 @@ public class CameraView {
     //CONSTRUCTOR
     public CameraView(Context cont, View panelView, String log_tag) {
         this.TAG = log_tag;
-
         appContext = cont;
         cameraTextureView = (TextureView) panelView;
-
     }
 
     /**
@@ -122,7 +130,7 @@ public class CameraView {
     @SuppressLint("MissingPermission")
     private void setupCamera(int width, int height) {
         //Comprobamos los permisos
-        if (!hasCameraPermission(appContext)) {
+        if (!Permits.CAMERA_PERMIT) {
             Log.e(TAG, "This app don't have permissions to obtain the camera");
             return;
         }
@@ -241,21 +249,15 @@ public class CameraView {
         return mapSize[0];
     }
 
-    public static boolean hasCameraPermission(Context context){
-        return ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
-                == PackageManager.PERMISSION_GRANTED;
-    }
-
-    public static void requestCameraPermission(Activity act, int permission){
-        ActivityCompat.requestPermissions(act,new String[]{Manifest.permission.CAMERA},permission);
-    }
-
     public boolean cameraAvailable(){
         return cameraTextureView.isAvailable();
     }
 
-    public void setCamSurfaceTextureListener(){
+    @Override
+    public void run(){
+        Looper.prepare();
         cameraTextureView.setSurfaceTextureListener(camSurfaceTextureListener);
+        Looper.loop();
     }
 
     /**

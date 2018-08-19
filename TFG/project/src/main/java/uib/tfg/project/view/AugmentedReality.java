@@ -1,78 +1,106 @@
 package uib.tfg.project.view;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.widget.Toast;
 import java.util.concurrent.Semaphore;
 import android.util.Log;
 
+import uib.tfg.project.ProjectView;
 import uib.tfg.project.R;
 import uib.tfg.project.presenter.Presenter;
 import uib.tfg.project.presenter.ProjectPresenter;
-import uib.tfg.project.view.camera.CameraView;
 
 
 public class AugmentedReality extends Activity implements View{
 
-    private Presenter presentador;
-    private CameraView vistaCamara;
+    private Presenter presenter;
+    private CameraView cameraStream;
+    private VirtualCameraView virtualStream;
     private final Semaphore mutex = new Semaphore(0);
-    private String TAG = "View/AugmentedReality";
-    protected static class Permissions {
-        static public boolean CAMERA_PERMISSION = false;
-        static public boolean GPS_PERMISSION = false;
-        static public boolean STORAGE_PERMISSION = false;
-        static public boolean SENSORS_PERMISSION = false;
+    private static final String TAG = "View/AugmentedReality";
 
-        static final int CAMERA_REQUEST = 0;
-        static final int GPS_REQUEST = 1;
-        static final int STORAGE_REQUEST = 2;
-        static final int SENSORS_REQUEST = 3;
+
+    public AugmentedReality(){
+        super();
     }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        presentador = new ProjectPresenter(this);
-
+        presenter = new ProjectPresenter(this, this);
         //Se encarga de obtener todos los permisos
-        if(!hasFeatures() && !hasAllPermissions()) {
-             Toast.makeText(this, "Esta app no puede funcionar si no se aceptan" +
-                                "todos los permisos.",
-                        Toast.LENGTH_LONG).show();
-             setContentView(R.layout.menu);
-             return;
+        if(!hasFeatures()){
+            Toast.makeText(this, "Tu movil no posee todas las características para" +
+                            "poder ejecutar esta app.",
+                    Toast.LENGTH_LONG).show();
+            goToMenu();
+            return;
         }
         setContentView(R.layout.activity_augmented_reality);
+
         //Crea la vista de la camara
-        vistaCamara = new CameraView(this, this.findViewById(R.id.camera_view), "View/Camera/CameraView");
+        cameraStream = new CameraView(this, this.findViewById(R.id.camera_view), "View/Camera/CameraView");
+        virtualStream = new VirtualCameraView(this, this.findViewById(R.id.virtual_view),
+                this.findViewById(R.id.debbugerText),presenter, "View/VirtualCameraView");
+
     }
 
-    private boolean hasFeatures() {
-        return true;
-    }
-    private boolean hasAllPermissions() {
-        try{
-            //CAMERA PERMISSION
-            if(!CameraView.hasCameraPermission(this)) {
-                CameraView.requestCameraPermission(this, Permissions.CAMERA_REQUEST);
-                mutex.acquire();
-                if(!Permissions.CAMERA_PERMISSION){
-                    Log.w(TAG,"Camera permission not granted");
-                    return false;
-                }
-            }
-        }catch(InterruptedException ie){
-            Log.e(TAG,"Program interrupted while checking permissions");
+    @Override
+    public void onStart(){
+        super.onStart();
+        if(!Permits.hasAllPermits(this)) {
+            getRemainingPermits();
+            Log.i(TAG,"Waiting permission response...");
+            return;
         }
-        return true;
+    }
+    private boolean hasFeatures() {
+        PackageManager pm = this.getPackageManager();
+        boolean hasAllFeatures = true;
+        if(!pm.hasSystemFeature(PackageManager.FEATURE_CAMERA)){
+            Log.e("TAG","This device don't have Camera");
+            hasAllFeatures = false;
+        }
+
+        if(!pm.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)){
+            Log.e("TAG","This device don't have GPS system.");
+            hasAllFeatures = false;
+        }
+
+        if(!pm.hasSystemFeature(PackageManager.FEATURE_SENSOR_GYROSCOPE)){
+            Log.e("TAG","This device don't have Gyroscope sensor.");
+            hasAllFeatures = false;
+        }
+
+        if(!pm.hasSystemFeature(PackageManager.FEATURE_SENSOR_COMPASS)){
+            Log.e("TAG","This device don't have Compass sensor.");
+            hasAllFeatures = false;
+        }
+
+        if(!pm.hasSystemFeature(PackageManager.FEATURE_SENSOR_ACCELEROMETER)){
+            Log.e("TAG","This device don't have Accelerometer sensor.");
+            hasAllFeatures = false;
+        }
+
+        Log.i(TAG, "Device has all features used by this app");
+        return hasAllFeatures;
     }
 
+    private void getRemainingPermits() {
+        String [] features_to_request = Permits.getFeaturesToRequest();
+        if(features_to_request != null) {
+            ActivityCompat.requestPermissions(this, features_to_request, Permits.ALL_PERMITS_REQUEST);
+        }
+    }
 
     protected void onPause() {
         super.onPause();
-        //liberar componentes
+        presenter.stopLocationService();
+        presenter.stopSensorsService();
     }
 
 
@@ -80,35 +108,48 @@ public class AugmentedReality extends Activity implements View{
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[],
                                            int[] grantResults){
-        boolean hasPermissions = false;
-        if(grantResults.length > 0
-                && grantResults[0] == PackageManager.PERMISSION_GRANTED)
-            hasPermissions = true;
-        switch(requestCode){
-            case Permissions.CAMERA_REQUEST:
-                Permissions.CAMERA_PERMISSION = hasPermissions;
-                break;
-            case Permissions.GPS_REQUEST:
-                Permissions.GPS_PERMISSION = hasPermissions;
-                break;
-            case Permissions.STORAGE_REQUEST:
-                Permissions.STORAGE_PERMISSION = hasPermissions;
-                break;
-            case Permissions.SENSORS_REQUEST:
-                Permissions.SENSORS_PERMISSION = hasPermissions;
-                break;
+        if(Permits.ALL_PERMITS_REQUEST == requestCode){
+            Permits.updatePermits(permissions, grantResults);
         }
-        mutex.release();
+
+        if(Permits.hasAllPermits(this)){
+            Toast.makeText(this, "Todos los permisos obtenidos !!",
+                    Toast.LENGTH_LONG).show();
+
+            //si es la primera vez que llamamos a la camara y aun no teniamos permisos
+            if(!cameraStream.cameraAvailable()){
+                cameraStream.start();
+            }
+
+        }else{
+                Toast.makeText(this, "Esta app no puede funcionar si no se aceptan" +
+                                "todos los permisos.",
+                        Toast.LENGTH_LONG).show();
+            goToMenu();
+        }
+        return;
+    }
+
+    private void goToMenu() {
+        //vuelve
+        Intent pv = new Intent(this, ProjectView.class);
+        startActivity(pv);
     }
 
     @Override
     public void onResume(){
         super.onResume();
-
-        if(vistaCamara.cameraAvailable()){
-
-        } else {
-            vistaCamara.setCamSurfaceTextureListener();
+        if(Permits.CAMERA_PERMIT && !cameraStream.cameraAvailable()){
+            cameraStream.start();
+        }
+        if(Permits.GPS_PERMIT){
+           presenter.initiateLocationService();
+        }
+        if(Permits.SENSORS_PERMIT){
+            presenter.initiateSensorsService();
+        }
+        if(Permits.hasAllPermits(this)){
+            virtualStream.start();
         }
     }
 

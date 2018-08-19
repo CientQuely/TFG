@@ -28,7 +28,6 @@ public class ProjectView extends Activity {
     }
 
     public void onStartClick(android.view.View view) {
-
         Intent ar = new Intent(this, AugmentedReality.class);
         startActivity(ar);
 
