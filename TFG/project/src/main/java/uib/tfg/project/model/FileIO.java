@@ -17,13 +17,13 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
 
 public class FileIO {
     protected static final String FILE_DIR= "/DATA/";
-    protected static final String USER_IMG_DIR= "user_%s/imgs/img_%s.png";
-    protected static final String DATA_BASE_PATH= "db_data.db";
-    protected static final String DATA_BASE_CONFIG_PATH= "db_conf.cf";
+    protected static final String DATA_BASE_PATH= "%s.db";
+    protected static final String DATA_BASE_CONFIG_PATH= "%s.cf";
     protected static final String TAG="model/FileIO";
 
     protected static Bitmap openImageBitmap(String image_path){
@@ -43,59 +43,51 @@ public class FileIO {
         }
         return false;
     }
-    /**
-     *Guardamos la imagen del directorio origen a nuestro directorio local de la app
-     * @param OrigenPath Origen image path
-     * @param user_id
-     * @param image_id
-     * @return Path al directorio donde se guardo la imagen.
-     */
-    public static String storeImage(String OrigenPath, String user_id, String image_id){
-        String new_image_path = String.format(FILE_DIR + USER_IMG_DIR, user_id, image_id);
-        File source = new File(OrigenPath);
-        if(!source.exists()) return null;
-        File dest = new File(new_image_path);
-        try {
-            FileIO.copy(source, dest);
-        } catch (IOException e) {
-            Log.e(TAG,"Image could not be saved");
+
+    public static Object loadDB_Config(String db_conf){
+        String file_path = String.format(FILE_DIR+DATA_BASE_CONFIG_PATH,db_conf);
+        File f = new File(file_path);
+        if(!f.exists()) return null;
+        FileInputStream fis;
+        ObjectInputStream ois;
+        try{
+            fis = new FileInputStream(file_path);
+            ois = new ObjectInputStream(fis);
+            Object o =  ois.readObject();
+            ois.close();
+            fis.close();
+        }catch(IOException ioe){
+            ioe.printStackTrace();
+        } catch (ClassNotFoundException e) {
             e.printStackTrace();
-            return null;
         }
-        return new_image_path;
+        return null;
     }
 
-    public static void update_DB_Config(){
-
-    }
-    /**
-     * Copia la imagen del directorio source a destination
-     * @param src
-     * @param dst
-     * @throws IOException
-     */
-    public static void copy(File src, File dst) throws IOException {
-        try (InputStream in = new FileInputStream(src)) {
-            try (OutputStream out = new FileOutputStream(dst)) {
-                // Transfer bytes from in to out
-                byte[] buf = new byte[1024];
-                int len;
-                while ((len = in.read(buf)) > 0) {
-                    out.write(buf, 0, len);
-                }
-            }
+    public static void storeDB_Config(String db_conf, Object o){
+        String file_path = String.format(FILE_DIR+DATA_BASE_CONFIG_PATH,db_conf);
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(file_path,true);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(o);
+            oos.close();
+            fos.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
+
     /**
      * Crea una session de guardado que mantiene el fichero abierto para ir guardando
      * la información de la base de datos a medida que se crea.
      */
-    public class DBStoreSession {
+    public static class DBStoreSession {
         private FileOutputStream fos;
         private ObjectOutputStream oos;
 
         public DBStoreSession(String db_name){
-            String db_dir = String.format(FILE_DIR+DATA_BASE_PATH);
+            String db_dir = String.format(FILE_DIR+DATA_BASE_PATH,db_name);
             try {
                 fos = new FileOutputStream(db_dir,true);
                 oos = new ObjectOutputStream(fos);
@@ -131,7 +123,7 @@ public class FileIO {
     /**
      * Esta clase itera desde un fichero para cargar la base de datos.
      */
-    public class DBFileIterator implements Iterable<Object>{
+    public static class DBFileIterator implements Iterable<Object>{
 
         private FileInputStream fis = null;
         private ObjectInputStream ois = null;

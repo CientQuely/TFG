@@ -3,27 +3,27 @@ package uib.tfg.project.model.Data;
 import android.location.Location;
 import java.util.Vector;
 
-public class UserCurrentData {
-    private static String user_id;
+public class UserData {
+    private float user_id;
     private volatile Location user_location;
     private volatile float [] user_rotation;
     private volatile float [] user_acceleration;
     public final int X_AXIS = 0;
     public final int Y_AXIS = 1;
     public final int Z_AXIS = 2;
-    public final int earth_Radius =
-    public UserCurrentData(String user_id){
+    public UserData(float user_id){
         this.user_id = user_id;
-        this.user_rotation = new float [3];
+        this.user_rotation = new float
+                [3];
         this.user_acceleration = new float [3];
         this.user_location = null;
     }
-    public static String getUser_id() {
+    public float getUser_id() {
         return user_id;
     }
 
-    public static void setUser_id(String user_id) {
-        UserCurrentData.user_id = user_id;
+    public void setUser_id(float user_id) {
+        this.user_id = user_id;
     }
 
     public Location getUser_location() {
