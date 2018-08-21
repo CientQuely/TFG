@@ -37,16 +37,16 @@ public class UserData {
 
     public void setUser_rotation(float [] rotation){
         if(rotation.length != 3) return;
-            this.user_rotation[X_AXIS] = rotation[X_AXIS];
-            this.user_rotation[Y_AXIS] = rotation[Y_AXIS];
-            this.user_rotation[Z_AXIS] = rotation[Z_AXIS];
+            this.user_rotation[X_AXIS] = rotation[0];
+            this.user_rotation[Y_AXIS] = rotation[1];
+            this.user_rotation[Z_AXIS] = rotation[2];
     }
 
     public void setUser_acceleration(float [] acceleration) {
         if(acceleration.length != 3) return;
-        this.user_acceleration[X_AXIS] = acceleration[X_AXIS];
-        this.user_acceleration[Y_AXIS] = acceleration[Y_AXIS];
-        this.user_acceleration[Z_AXIS] = acceleration[Z_AXIS];
+        this.user_acceleration[X_AXIS] = acceleration[0];
+        this.user_acceleration[Y_AXIS] = acceleration[1];
+        this.user_acceleration[Z_AXIS] = acceleration[2];
     }
 
     public float [] get_Rotation(){

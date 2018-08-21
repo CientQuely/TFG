@@ -19,6 +19,7 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
+import java.util.concurrent.Semaphore;
 
 public class FileIO {
     protected static final String FILE_DIR= "/DATA/";
@@ -44,7 +45,7 @@ public class FileIO {
         return false;
     }
 
-    public static Object loadDB_Config(String db_conf){
+    public static Object loadDB_Config(String db_conf) throws IOException {
         String file_path = String.format(FILE_DIR+DATA_BASE_CONFIG_PATH,db_conf);
         File f = new File(file_path);
         if(!f.exists()) return null;
@@ -56,26 +57,20 @@ public class FileIO {
             Object o =  ois.readObject();
             ois.close();
             fis.close();
-        }catch(IOException ioe){
-            ioe.printStackTrace();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
         return null;
     }
 
-    public static void storeDB_Config(String db_conf, Object o){
+    public static void storeDB_Config(String db_conf, Object o) throws IOException {
         String file_path = String.format(FILE_DIR+DATA_BASE_CONFIG_PATH,db_conf);
         FileOutputStream fos = null;
-        try {
             fos = new FileOutputStream(file_path,true);
             ObjectOutputStream oos = new ObjectOutputStream(fos);
             oos.writeObject(o);
             oos.close();
             fos.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -86,18 +81,12 @@ public class FileIO {
         private FileOutputStream fos;
         private ObjectOutputStream oos;
 
-        public DBStoreSession(String db_name){
+        public DBStoreSession(String db_name) throws IOException {
             String db_dir = String.format(FILE_DIR+DATA_BASE_PATH,db_name);
-            try {
                 fos = new FileOutputStream(db_dir,true);
                 oos = new ObjectOutputStream(fos);
 
-            } catch (FileNotFoundException e) {
-                Log.e(TAG," DBStoreSession Error: File not found exception");
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+
         }
 
         public void storeDBObject(Object db_object){
@@ -130,11 +119,10 @@ public class FileIO {
         private float db_count;
         private float db_size;
 
-        public DBFileIterator(String db_name, float db_size){
+        public DBFileIterator(String db_name, float db_size) throws IOException {
             this.db_size = db_size;
             db_count = 0;
             String db_dir = String.format(FILE_DIR+DATA_BASE_PATH,db_name);
-            try {
                 //Crea el fichero si no existe
                 File f = new File(db_dir);
                 if(!f.exists()){
@@ -142,11 +130,6 @@ public class FileIO {
                 }
                 FileInputStream fis = new FileInputStream(db_dir);
                 ois = new ObjectInputStream(fis);
-            } catch (FileNotFoundException fnf){
-                Log.e(TAG," DBFileIterator Error: File not found exception");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
         protected void finalize() {
             try {

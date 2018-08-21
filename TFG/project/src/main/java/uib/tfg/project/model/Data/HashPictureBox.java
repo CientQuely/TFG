@@ -4,16 +4,19 @@ import android.graphics.Point;
 import android.location.Location;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class HashPictureBox {
 
     //Tamaño de cada una de las cajas del hash
-    private final double BOX_METERS = 30;
+    private static final double BOX_METERS = 30;
     //This location decimal is about 1,1 meters
-    private final double METER_CORRELATION = 0.00001;
+    private static final double METER_CORRELATION = 0.00001;
     private final int INITIAL_HASH_DT_SIZE = 500;
     HashMap<String,PictureBox> box_hash;
 
+    private Iterator<HashMap.Entry<String, PictureBox>> iterator;
     public HashPictureBox(){
         box_hash = new HashMap<>();
     }
@@ -35,7 +38,7 @@ public class HashPictureBox {
     public boolean deletePicture(PictureObject po){
         boolean deleted = false;
         //Obtenemos la posicion de la cuadricula relativa
-        Point box_position = getPictureBoxPosition(po);
+        Point box_position = getPictureBoxPosition(po.getLocation());
         //buscamos en el hash la PictureBox con la imagen
         PictureBox box = box_hash.get(getHashKey(box_position));
         if(box != null){
@@ -45,10 +48,9 @@ public class HashPictureBox {
         return deleted;
     }
 
-    private Point getPictureBoxPosition(PictureObject po){
-        Location po_location = po.getLocation();
-        int x_position = (int)((double)po_location.getLatitude()/(BOX_METERS*METER_CORRELATION));
-        int y_position = (int)((double)po_location.getLongitude()/(BOX_METERS*METER_CORRELATION));
+    public static Point getPictureBoxPosition(Location location){
+        int x_position = (int)((double)location.getLatitude()/(BOX_METERS*METER_CORRELATION));
+        int y_position = (int)((double)location.getLongitude()/(BOX_METERS*METER_CORRELATION));
         return new Point(x_position,y_position);
     }
 
@@ -58,5 +60,20 @@ public class HashPictureBox {
 
     private String getHashKey(PictureBox pb){
         return "pictureHashKey-"+pb.getX_Coordinate()+"-"+pb.getY_Coordinate();
+    }
+
+    public void initiateIterator () {
+        iterator =  box_hash.entrySet().iterator();
+    }
+
+    public PictureBox getNextPictureBox(){
+        if(iterator != null && iterator.hasNext()){
+            return iterator.next().getValue();
+        }
+        return null;
+    }
+
+    public PictureBox getPictureBox(Point p){
+        return box_hash.get(getHashKey(p));
     }
 }

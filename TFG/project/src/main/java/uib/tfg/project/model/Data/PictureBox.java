@@ -1,16 +1,14 @@
 package uib.tfg.project.model.Data;
 
-import android.location.LocationListener;
-import android.webkit.WebView;
-
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Iterator;
 
 public class PictureBox {
 
     private ArrayList<PictureObject> pictureList;
     private final float X_Coordinate;
     private final float Y_Coordinate;
+    private Iterator<PictureObject> iterator;
 
     public float getX_Coordinate() {
         return X_Coordinate;
@@ -52,5 +50,16 @@ public class PictureBox {
             }
         }
         return false;
+    }
+
+    public void initiateIterator() {
+        iterator =  pictureList.iterator();
+    }
+
+    public PictureObject getNextPicture(){
+        if(iterator != null && iterator.hasNext()){
+            return iterator.next();
+        }
+        return null;
     }
 }
