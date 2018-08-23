@@ -97,13 +97,6 @@ public class AugmentedReality extends Activity implements View{
         }
     }
 
-    protected void onPause() {
-        super.onPause();
-        presenter.stopLocationService();
-        presenter.stopSensorsService();
-    }
-
-
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[],
@@ -148,9 +141,19 @@ public class AugmentedReality extends Activity implements View{
         if(Permits.SENSORS_PERMIT){
             presenter.initiateSensorsService();
         }
+        if(Permits.STORAGE_PERMIT){
+            presenter.initiatePictureLoader();
+        }
         if(Permits.hasAllPermits(this)){
             virtualStream.start();
         }
     }
 
+    protected void onPause() {
+        super.onPause();
+        presenter.stopLocationService();
+        presenter.stopSensorsService();
+        presenter.stopPictureLoader();
+        presenter.storeDataBase();
+    }
 }

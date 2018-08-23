@@ -15,6 +15,7 @@ public interface Presenter {
     Location getUserLocation();
     float [] getUserRotation();
     float [] getUserAcceleration();
-    void loadDataBase();
+    void initiatePictureLoader();
+    void stopPictureLoader();
     void storeDataBase();
 }

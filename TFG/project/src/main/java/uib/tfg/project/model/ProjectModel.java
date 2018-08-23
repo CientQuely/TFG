@@ -1,5 +1,7 @@
 package uib.tfg.project.model;
 
+import android.graphics.Bitmap;
+import android.graphics.Picture;
 import android.graphics.Point;
 import android.location.Location;
 
@@ -21,6 +23,7 @@ import uib.tfg.project.presenter.Presenter;
 
 public class ProjectModel implements Model{
     public static final String DB_NAME = "picture_database_one";
+    private final String NOT_FOUND_IMG_PATH = "";
     private Presenter presenter;
     UserData user_data;
     DB_Config db_config;
@@ -29,11 +32,15 @@ public class ProjectModel implements Model{
     protected Semaphore db_mutex = new Semaphore(1);
     protected Semaphore hash_mutex = new Semaphore(1);
 
-    public ProjectModel(Presenter p){
+    public ProjectModel(Presenter p) throws ModelException.Bitmap_Not_Found_Exception {
         this.presenter = p;
         picture_hash = new HashPictureBox();
         user_data = new UserData(1);
-        image_cache = new ImageCache();
+        Bitmap not_found_bMap = FileIO.openImageBitmap(NOT_FOUND_IMG_PATH);
+        //if (not_found_bMap == null){
+        //    throw new ModelException.Bitmap_Not_Found_Exception("In ProjectModel");
+        //}
+        image_cache = new ImageCache(not_found_bMap);
     }
     @Override
     public void loadDataBase() throws ModelException.DB_Config_Exception, ModelException.DB_File_Exception {
@@ -135,19 +142,39 @@ public class ProjectModel implements Model{
 
     @Override
     public Point getUserLocationBox(){
-        Location user_actual_box = getUserCurrentLocation();
-        picture_hash.getPictureBox(l);
+        Location user_location = getUserCurrentLocation();
+        return HashPictureBox.getPictureBoxPosition(user_location);
     }
 
-    private void loadNearBoxes(){
-        Point user_box = getUserCurrentLocation();
-        float init_x_box = user_box.x - BOXES_RANGE;
-        float init_y_box = user_box.y - BOXES_RANGE;
-        float final_x_box = user_box.x + BOXES_RANGE;
-        float final_y_box = user_box.y + BOXES_RANGE;
-        for (float x= init_x_box; x<final_x_box; x++){
-            for (float y= init_y_box; y<final_y_box; y++){
-                model.loadBoxPicturesBitMaps(x,y);
+
+    public void loadPicturesFromBox(PictureBox box){
+        box.initiateIterator();
+        PictureObject actual = box.getNextPicture();
+        while(actual != null){
+            Bitmap actual_bitmap = image_cache.getCachedImage(actual.getImage_path());
+            if( actual_bitmap == null){
+                    actual_bitmap = FileIO.openImageBitmap(actual.getImage_path());
+                    if(actual_bitmap == null){
+                        actual_bitmap = image_cache.getCachedImage(ImageCache.NOT_FOUND_IMAGE);
+                    }
+                    image_cache.cacheImage(actual.getImage_path(), actual_bitmap);
+            }
+            actual.setBitmap(actual_bitmap);
+            actual = box.getNextPicture();
+        }
+    }
+
+    @Override
+    public void loadNearBoxes(){
+        Point user_box = getUserLocationBox();
+        int init_x_box = user_box.x - PictureBox.BOX_RANGE;
+        int init_y_box = user_box.y - PictureBox.BOX_RANGE;
+        int final_x_box = user_box.x + PictureBox.BOX_RANGE;
+        int final_y_box = user_box.y + PictureBox.BOX_RANGE;
+        for (int x= init_x_box; x<final_x_box; x++){
+            for (int y= init_y_box; y<final_y_box; y++){
+                PictureBox actual_box = picture_hash.getPictureBox(x, y);
+                loadPicturesFromBox(actual_box);
             }
         }
     }

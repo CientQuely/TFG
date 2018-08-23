@@ -23,9 +23,9 @@ public class HashPictureBox {
 
     public void addPicture(PictureObject po){
         //Obtenemos la posicion de la cuadricula relativa
-        Point box_position = getPictureBoxPosition(po);
+        Point box_position = getPictureBoxPosition(po.getLocation());
         //buscamos en el hash la PictureBox que contendra la imagen
-        PictureBox box = box_hash.get(getHashKey(box_position));
+        PictureBox box = box_hash.get(getHashKey(box_position.x, box_position.y));
         if(box == null){
             //Si no existe la creamos
             box = new PictureBox(box_position.x,box_position.y);
@@ -40,7 +40,7 @@ public class HashPictureBox {
         //Obtenemos la posicion de la cuadricula relativa
         Point box_position = getPictureBoxPosition(po.getLocation());
         //buscamos en el hash la PictureBox con la imagen
-        PictureBox box = box_hash.get(getHashKey(box_position));
+        PictureBox box = box_hash.get(getHashKey(box_position.x, box_position.y));
         if(box != null){
             deleted = box.deletePicture(po.getUser_id(), po.getPicture_id());
             if(box.isEmpty()) box_hash.remove(getHashKey(box));
@@ -49,13 +49,13 @@ public class HashPictureBox {
     }
 
     public static Point getPictureBoxPosition(Location location){
-        int x_position = (int)((double)location.getLatitude()/(BOX_METERS*METER_CORRELATION));
-        int y_position = (int)((double)location.getLongitude()/(BOX_METERS*METER_CORRELATION));
+        int x_position = (int)((float)location.getLatitude()/(BOX_METERS*METER_CORRELATION));
+        int y_position = (int)((float)location.getLongitude()/(BOX_METERS*METER_CORRELATION));
         return new Point(x_position,y_position);
     }
 
-    private String getHashKey(Point p){
-        return "pictureHashKey-"+p.x+"-"+p.y;
+    private String getHashKey(int x, int y){
+        return "pictureHashKey-"+x+"-"+y;
     }
 
     private String getHashKey(PictureBox pb){
@@ -73,7 +73,8 @@ public class HashPictureBox {
         return null;
     }
 
-    public PictureBox getPictureBox(Point p){
-        return box_hash.get(getHashKey(p));
+    public PictureBox getPictureBox(int x, int y){
+        return box_hash.get(getHashKey(x,y));
     }
+
 }

@@ -6,9 +6,10 @@ import java.util.HashMap;
 public class ImageCache {
     private HashMap<String,Bitmap> img_cache;
     private final static float INIT_DT_SIZE = 200;
-
-    public ImageCache(){
+    public static final String NOT_FOUND_IMAGE = "NOT_FOUND_IMAGE";
+    public ImageCache(Bitmap not_found_bitmap){
         img_cache = new HashMap<>();
+        cacheImage(NOT_FOUND_IMAGE, not_found_bitmap);
     }
 
     public Bitmap getCachedImage(String key){

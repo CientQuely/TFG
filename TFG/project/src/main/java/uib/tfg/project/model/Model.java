@@ -23,4 +23,5 @@ public interface Model {
     void savePicture(Location location, double height, String img_path) throws InterruptedException;
     void deletePicture(PictureObject po) throws InterruptedException;
     Point getUserLocationBox();
+    void loadNearBoxes();
 }

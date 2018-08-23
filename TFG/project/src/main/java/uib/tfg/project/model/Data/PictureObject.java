@@ -66,6 +66,11 @@ public class PictureObject implements Serializable{
     public boolean isThisPicture(float user_id, float picture_id){
         return user_id==this.user_id && picture_id==this.picture_id;
     }
+
+    public void setBitmap(Bitmap bitmap) {
+        this.bitmap = bitmap;
+    }
+
     @Override
     public String toString(){
         return String.format("Picture ID: %2d, Location: %s",picture_id, location.toString());

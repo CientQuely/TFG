@@ -18,11 +18,12 @@ public class PictureLoader extends Thread implements Observer {
     private static boolean DB_LOADED;
     private static final int BOXES_RANGE = 1;
     private static final float MIN_TIME = 3000; //in milliseconds
-    private int last_update =
+    private static volatile boolean thread_interrupted;
 
-    PictureLoader(Model m){
-        this.model = m;
+    public PictureLoader(Model model){
+        this.model = model;
         DB_LOADED = false;
+        thread_interrupted = false;
     }
 
     @Override
@@ -31,7 +32,7 @@ public class PictureLoader extends Thread implements Observer {
         try {
             model.loadDataBase();
             DB_LOADED = true;
-            load_near_boxes();
+            model.loadNearBoxes();
         } catch (ModelException.DB_Config_Exception e) {
             Log.e(TAG,"DB Could not be created/loaded");
             e.printStackTrace();
@@ -40,22 +41,26 @@ public class PictureLoader extends Thread implements Observer {
             e.printStackTrace();
         }
 
+        while (!thread_interrupted){
+            try {
+                this.wait();
+                model.loadNearBoxes();
+            } catch (InterruptedException e) {
+                this.interrupt();
+            }
+        }
+        thread_interrupted = false;
         Looper.loop();
     }
 
-
-
-    private void clearFarBoxes(float old_box , float old_box){
-        Point user_box = model.getUserLocationBox();
-    }
-
     public void stopPictureLoader(){
-        inte
+        thread_interrupted = true;
     }
 
     @Override
     public void update(Observable o, Object arg) {
-        loadNearBoxes();
-        clearFarBoxes();
+        synchronized (o){
+            notify();
+        }
     }
 }

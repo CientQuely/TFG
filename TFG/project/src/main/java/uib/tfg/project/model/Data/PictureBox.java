@@ -6,8 +6,9 @@ import java.util.Iterator;
 public class PictureBox {
 
     private ArrayList<PictureObject> pictureList;
-    private final float X_Coordinate;
-    private final float Y_Coordinate;
+    private final int X_Coordinate;
+    private final int Y_Coordinate;
+    public static int BOX_RANGE = 1;
     private Iterator<PictureObject> iterator;
 
     public float getX_Coordinate() {
@@ -18,7 +19,7 @@ public class PictureBox {
         return Y_Coordinate;
     }
 
-    public PictureBox(float x, float y){
+    public PictureBox(int x, int y){
         X_Coordinate = x;
         Y_Coordinate = y;
         pictureList = new ArrayList<>();

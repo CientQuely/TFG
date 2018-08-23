@@ -15,6 +15,12 @@ public class ModelException extends Exception {
         }
     }
 
+    public static class Bitmap_Not_Found_Exception extends Exception {
+        public Bitmap_Not_Found_Exception(String message) {
+            super(message);
+        }
+    }
+
 
 
 }

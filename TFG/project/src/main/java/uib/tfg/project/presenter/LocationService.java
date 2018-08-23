@@ -168,6 +168,5 @@ public class LocationService extends Thread implements LocationListener {
     public void stopLocationService() {
         locationManager.removeUpdates(this);
         running = false;
-        this.interrupt();
     }
 }
