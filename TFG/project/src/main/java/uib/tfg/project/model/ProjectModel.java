@@ -1,6 +1,7 @@
 package uib.tfg.project.model;
 
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Picture;
 import android.graphics.Point;
 import android.location.Location;
@@ -23,7 +24,6 @@ import uib.tfg.project.presenter.Presenter;
 
 public class ProjectModel implements Model{
     public static final String DB_NAME = "picture_database_one";
-    private final String NOT_FOUND_IMG_PATH = "";
     private Presenter presenter;
     UserData user_data;
     DB_Config db_config;
@@ -32,15 +32,11 @@ public class ProjectModel implements Model{
     protected Semaphore db_mutex = new Semaphore(1);
     protected Semaphore hash_mutex = new Semaphore(1);
 
-    public ProjectModel(Presenter p) throws ModelException.Bitmap_Not_Found_Exception {
+    public ProjectModel(Presenter p, Bitmap not_found_img) throws ModelException.Bitmap_Not_Found_Exception {
         this.presenter = p;
         picture_hash = new HashPictureBox();
         user_data = new UserData(1);
-        Bitmap not_found_bMap = FileIO.openImageBitmap(NOT_FOUND_IMG_PATH);
-        //if (not_found_bMap == null){
-        //    throw new ModelException.Bitmap_Not_Found_Exception("In ProjectModel");
-        //}
-        image_cache = new ImageCache(not_found_bMap);
+        image_cache = new ImageCache(not_found_img);
     }
     @Override
     public void loadDataBase() throws ModelException.DB_Config_Exception, ModelException.DB_File_Exception {
@@ -140,8 +136,8 @@ public class ProjectModel implements Model{
         //picture_hash.deleteUserPictures();
     }
 
-    @Override
-    public Point getUserLocationBox(){
+
+    private Point getUserLocationBox(){
         Location user_location = getUserCurrentLocation();
         return HashPictureBox.getPictureBoxPosition(user_location);
     }
@@ -165,7 +161,7 @@ public class ProjectModel implements Model{
     }
 
     @Override
-    public void loadNearBoxes(){
+    public Point loadNearBoxes(){
         Point user_box = getUserLocationBox();
         int init_x_box = user_box.x - PictureBox.BOX_RANGE;
         int init_y_box = user_box.y - PictureBox.BOX_RANGE;
@@ -174,9 +170,12 @@ public class ProjectModel implements Model{
         for (int x= init_x_box; x<final_x_box; x++){
             for (int y= init_y_box; y<final_y_box; y++){
                 PictureBox actual_box = picture_hash.getPictureBox(x, y);
-                loadPicturesFromBox(actual_box);
+                if(actual_box != null){
+                    loadPicturesFromBox(actual_box);
+                }
             }
         }
+        return user_box;
     }
     @Override
     public Location getUserCurrentLocation() {

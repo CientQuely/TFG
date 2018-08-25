@@ -77,4 +77,12 @@ public class HashPictureBox {
         return box_hash.get(getHashKey(x,y));
     }
 
+
+    public static boolean pictureUserBoxChanged(Location old_user_location,
+                                                Location new_user_location) {
+        Point old_box = getPictureBoxPosition(old_user_location);
+        Point new_box = getPictureBoxPosition(new_user_location);
+
+        return !old_box.equals(new_box);
+    }
 }

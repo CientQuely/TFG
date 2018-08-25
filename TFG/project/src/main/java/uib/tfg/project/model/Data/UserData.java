@@ -1,9 +1,12 @@
 package uib.tfg.project.model.Data;
 
 import android.location.Location;
+
+import java.util.Observable;
+import java.util.Observer;
 import java.util.Vector;
 
-public class UserData {
+public class UserData extends Observable {
     private float user_id;
     private volatile Location user_location;
     private volatile float [] user_rotation;
@@ -27,11 +30,15 @@ public class UserData {
     }
 
     public Location getUser_location() {
-
         return user_location;
     }
 
     public void setUser_location(Location user_location) {
+        if( this.user_location != null
+                && HashPictureBox.pictureUserBoxChanged(
+                        this.user_location, user_location)){
+            notifyObservers();
+        }
         this.user_location = user_location;
     }
 
@@ -56,4 +63,7 @@ public class UserData {
         return user_acceleration.clone();
     }
 
+    public void setObserver(Observer observer){
+        this.addObserver(observer);
+    }
 }

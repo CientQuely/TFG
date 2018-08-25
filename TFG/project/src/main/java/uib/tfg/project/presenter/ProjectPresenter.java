@@ -1,6 +1,7 @@
 package uib.tfg.project.presenter;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.location.Location;
 import android.util.Log;
 
@@ -20,10 +21,10 @@ public class ProjectPresenter extends Thread implements Presenter{
     private SensorsService sensorService;
     private PictureLoader pictureLoader;
     private final static String TAG = "Presenter";
-    public ProjectPresenter (View v, Context appContext){
+    public ProjectPresenter (View v, Context appContext, Bitmap not_found_img){
         this.view = v;
         try {
-            this.model = new ProjectModel(this);
+            this.model = new ProjectModel(this, not_found_img);
         } catch (ModelException.Bitmap_Not_Found_Exception e) {
             Log.e(TAG, "Bitmap NOT_FOUND_IMG deleted");
             e.printStackTrace();

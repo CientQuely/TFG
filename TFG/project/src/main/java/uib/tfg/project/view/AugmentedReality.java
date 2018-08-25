@@ -3,7 +3,8 @@ package uib.tfg.project.view;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.location.Location;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.widget.Toast;
@@ -31,7 +32,8 @@ public class AugmentedReality extends Activity implements View{
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        presenter = new ProjectPresenter(this, this);
+        Bitmap not_foung_img = BitmapFactory.decodeResource(this.getResources(), R.drawable.not_found_img);
+        presenter = new ProjectPresenter(this, this, not_foung_img);
         //Se encarga de obtener todos los permisos
         if(!hasFeatures()){
             Toast.makeText(this, "Tu movil no posee todas las características para" +

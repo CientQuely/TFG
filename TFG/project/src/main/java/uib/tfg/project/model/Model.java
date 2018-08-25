@@ -22,6 +22,5 @@ public interface Model {
     void closeDataBase() throws ModelException.DB_Config_Exception, ModelException.DB_File_Exception;
     void savePicture(Location location, double height, String img_path) throws InterruptedException;
     void deletePicture(PictureObject po) throws InterruptedException;
-    Point getUserLocationBox();
-    void loadNearBoxes();
+    Point loadNearBoxes();
 }

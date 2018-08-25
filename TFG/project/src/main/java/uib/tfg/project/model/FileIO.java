@@ -5,7 +5,9 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Environment;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
@@ -23,7 +25,8 @@ import java.util.Iterator;
 import java.util.concurrent.Semaphore;
 
 public class FileIO {
-    protected static final String FILE_DIR= "/DATA/";
+    protected static final String EXTERNAL_DIR= Environment.getExternalStorageDirectory().getPath();
+    protected static final String APP_DIR = EXTERNAL_DIR + "/Android/";
     protected static final String DATA_BASE_PATH= "%s.db";
     protected static final String DATA_BASE_CONFIG_PATH= "%s.cf";
     protected static final String TAG="model/FileIO";
@@ -52,7 +55,7 @@ public class FileIO {
     }
 
     public static Object loadDB_Config(String db_conf) throws IOException {
-        String file_path = String.format(FILE_DIR+DATA_BASE_CONFIG_PATH,db_conf);
+        String file_path = String.format(APP_DIR+DATA_BASE_CONFIG_PATH,db_conf);
         File f = new File(file_path);
         if(!f.exists()) return null;
         FileInputStream fis;
@@ -70,7 +73,7 @@ public class FileIO {
     }
 
     public static void storeDB_Config(String db_conf, Object o) throws IOException {
-        String file_path = String.format(FILE_DIR+DATA_BASE_CONFIG_PATH,db_conf);
+        String file_path = String.format(APP_DIR+DATA_BASE_CONFIG_PATH,db_conf);
         FileOutputStream fos = null;
             fos = new FileOutputStream(file_path,true);
             ObjectOutputStream oos = new ObjectOutputStream(fos);
@@ -88,7 +91,7 @@ public class FileIO {
         private ObjectOutputStream oos;
 
         public DBStoreSession(String db_name) throws IOException {
-            String db_dir = String.format(FILE_DIR+DATA_BASE_PATH,db_name);
+            String db_dir = String.format(APP_DIR+DATA_BASE_PATH,db_name);
                 fos = new FileOutputStream(db_dir,true);
                 oos = new ObjectOutputStream(fos);
 
@@ -128,7 +131,7 @@ public class FileIO {
         public DBFileIterator(String db_name, float db_size) throws IOException {
             this.db_size = db_size;
             db_count = 0;
-            String db_dir = String.format(FILE_DIR+DATA_BASE_PATH,db_name);
+            String db_dir = String.format(APP_DIR+DATA_BASE_PATH,db_name);
                 //Crea el fichero si no existe
                 File f = new File(db_dir);
                 if(!f.exists()){

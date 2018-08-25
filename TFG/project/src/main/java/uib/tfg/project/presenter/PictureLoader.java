@@ -19,6 +19,7 @@ public class PictureLoader extends Thread implements Observer {
     private static final int BOXES_RANGE = 1;
     private static final float MIN_TIME = 3000; //in milliseconds
     private static volatile boolean thread_interrupted;
+    private Object lock = new Object();
 
     public PictureLoader(Model model){
         this.model = model;
@@ -31,8 +32,11 @@ public class PictureLoader extends Thread implements Observer {
         Looper.prepare();
         try {
             model.loadDataBase();
+            Log.i(TAG,"DB Loaded Correctly");
             DB_LOADED = true;
-            model.loadNearBoxes();
+            Point box_loaded = model.loadNearBoxes();
+            Log.i(TAG,"User box ["
+                    + box_loaded.x + "," + box_loaded.y +"] bitmaps loaded correctly");
         } catch (ModelException.DB_Config_Exception e) {
             Log.e(TAG,"DB Could not be created/loaded");
             e.printStackTrace();
@@ -43,24 +47,30 @@ public class PictureLoader extends Thread implements Observer {
 
         while (!thread_interrupted){
             try {
-                this.wait();
-                model.loadNearBoxes();
+                synchronized (lock){
+                    lock.wait();
+                }
+                Point box_loaded = model.loadNearBoxes();
+                Log.i(TAG,"User box ["
+                        + box_loaded.x + "," + box_loaded.y +"] bitmaps loaded correctly");
             } catch (InterruptedException e) {
                 this.interrupt();
             }
         }
         thread_interrupted = false;
+        running = false;
         Looper.loop();
     }
 
     public void stopPictureLoader(){
         thread_interrupted = true;
+        lock.notifyAll();
     }
 
     @Override
     public void update(Observable o, Object arg) {
-        synchronized (o){
-            notify();
+        synchronized (lock){
+            lock.notifyAll();
         }
     }
 }
