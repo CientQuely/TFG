@@ -8,6 +8,7 @@ import android.location.Location;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Observer;
 import java.util.concurrent.Semaphore;
 
 import uib.tfg.project.model.Data.DB_Config;
@@ -180,6 +181,17 @@ public class ProjectModel implements Model{
         }
         return user_box;
     }
+
+    @Override
+    public void setUserObserver(Observer o) {
+        user_data.setObserver(o);
+    }
+
+    @Override
+    public void removeUserObserver(Observer o) {
+        user_data.removeObserver(o);
+    }
+
     @Override
     public Location getUserCurrentLocation() {
         return user_data.getUser_location();

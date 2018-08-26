@@ -14,6 +14,7 @@ import uib.tfg.project.presenter.Presenter;
 public class VirtualCameraView extends Thread {
     private Context appContext;
     private ImageView virtualView;
+    private volatile boolean running = false;
     private TextView debuggerText;
     private Presenter presenter;
     private String TAG;
@@ -34,13 +35,14 @@ public class VirtualCameraView extends Thread {
 
     @Override
     public void run(){
+        running = true;
         Looper.prepare();
         startVirtualReality();
     }
 
 
     public void startVirtualReality(){
-        while(true){
+        while(!interrupted()){
             Location actual = presenter.getUserLocation();
             float [] rotation = presenter.getUserRotation();
             float [] acceleration = presenter.getUserAcceleration();
@@ -56,5 +58,9 @@ public class VirtualCameraView extends Thread {
                 e.printStackTrace();
             }
         }
+    }
+
+    public void stopVirtualReality(){
+        interrupt();
     }
 }

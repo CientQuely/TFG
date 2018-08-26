@@ -24,8 +24,8 @@ public class SensorsService extends Thread {
     private String TAG;
     private Model model;
     private final long INIT_TIME = 100; // in milliseconds
-    private static volatile boolean running;
     private SensorManager sensorsManager;
+    private volatile boolean running = false;
     private Sensor gyroscope;
     private Sensor accelerometer;
     private SensorEventListener gyroscopeListener = new SensorEventListener() {
@@ -55,11 +55,6 @@ public class SensorsService extends Thread {
         this.appContext = appContext;
         this.model = model;
         this.TAG = TAG;
-        running = false;
-    }
-
-    public boolean isRunning(){
-        return running;
     }
 
 
@@ -79,10 +74,14 @@ public class SensorsService extends Thread {
 
     }
 
+    public boolean isRunning() {
+        return running;
+    }
+
     @Override
     public void run(){
-        Looper.prepare();
         running = true;
+        Looper.prepare();
         initiateSensorsListener();
         Looper.loop();
     }
@@ -90,8 +89,6 @@ public class SensorsService extends Thread {
     public void stopSensorsService() {
         sensorsManager.unregisterListener(gyroscopeListener);
         sensorsManager.unregisterListener(accelerometerListener);
-        running = false;
-        this.interrupt();
     }
 
 }

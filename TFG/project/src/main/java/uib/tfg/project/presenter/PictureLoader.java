@@ -13,7 +13,7 @@ import uib.tfg.project.model.ModelException;
 public class PictureLoader extends Thread implements Observer {
 
     private Model model;
-    private volatile static boolean running = false;
+    private volatile boolean running = false;
     private String TAG = "Presenter/PictureLoader";
     private static boolean DB_LOADED;
     private static final int BOXES_RANGE = 1;
@@ -27,9 +27,15 @@ public class PictureLoader extends Thread implements Observer {
         thread_interrupted = false;
     }
 
+    public boolean isRunning() {
+        return running;
+    }
+
     @Override
     public void run(){
         Looper.prepare();
+        model.setUserObserver(this);
+        running = true;
         try {
             model.loadDataBase();
             Log.i(TAG,"DB Loaded Correctly");
@@ -58,13 +64,14 @@ public class PictureLoader extends Thread implements Observer {
             }
         }
         thread_interrupted = false;
-        running = false;
-        Looper.loop();
     }
 
     public void stopPictureLoader(){
         thread_interrupted = true;
-        lock.notifyAll();
+        model.removeUserObserver(this);
+        synchronized (lock) {
+            lock.notifyAll();
+        }
     }
 
     @Override

@@ -31,19 +31,14 @@ public class LocationService extends Thread implements LocationListener {
     private final long INIT_TIME = 100; // in milliseconds
     private final float INIT_DIST = 1; // in meters
     private final int HALF_MINUTE = 1000 * 30;
+    private volatile boolean running = false;
     private boolean GPS_ENABLED = false;
-    private static volatile boolean running;
     private LocationManager locationManager;
 
     public LocationService(Context appContext, Model model, String TAG) {
         this.appContext = appContext;
         this.model = model;
         this.TAG = TAG;
-        running = false;
-    }
-
-    public boolean isRunning(){
-        return running;
     }
 
     private boolean isBetterLocation(Location location, Location currentBestLocation){
@@ -114,10 +109,14 @@ public class LocationService extends Thread implements LocationListener {
 
     }
 
+    public boolean isRunning() {
+        return running;
+    }
+
     @Override
     public void run(){
-        Looper.prepare();
         running = true;
+        Looper.prepare();
         initiateGPSListener();
         Looper.loop();
     }
@@ -167,6 +166,6 @@ public class LocationService extends Thread implements LocationListener {
 
     public void stopLocationService() {
         locationManager.removeUpdates(this);
-        running = false;
+        interrupt();
     }
 }

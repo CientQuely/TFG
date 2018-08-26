@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Point;
 import android.location.Location;
 
+import java.util.Observer;
+
 import uib.tfg.project.model.Data.PictureObject;
 
 /**
@@ -23,4 +25,6 @@ public interface Model {
     void savePicture(Location location, double height, String img_path) throws InterruptedException;
     void deletePicture(PictureObject po) throws InterruptedException;
     Point loadNearBoxes();
+    void setUserObserver(Observer o);
+    void removeUserObserver(Observer o);
 }

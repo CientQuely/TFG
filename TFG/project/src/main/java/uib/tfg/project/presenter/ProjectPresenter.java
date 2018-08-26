@@ -42,22 +42,32 @@ public class ProjectPresenter extends Thread implements Presenter{
 
     @Override
     public void initiateLocationService() {
-        if(!locationService.isRunning()) locationService.start();
+        if(locationService.getState() == Thread.State.NEW){
+            locationService.start();
+        }
     }
 
     @Override
     public void stopLocationService() {
-        if(locationService.isRunning()) locationService.stopLocationService();
+        if(locationService.isRunning()){
+            locationService.stopLocationService();
+            locationService = new LocationService(appContext, model, TAG);
+        }
     }
 
     @Override
     public void initiateSensorsService(){
-        if(!sensorService.isRunning()) sensorService.start();
+        if(sensorService.getState() == Thread.State.NEW){
+            sensorService.start();
+        }
     }
 
     @Override
     public void stopSensorsService(){
-        if(sensorService.isRunning()) sensorService.stopSensorsService();
+        if(sensorService.isRunning()){
+            sensorService.stopSensorsService();
+            sensorService = new SensorsService(appContext, model, TAG);
+        }
     }
     @Override
     public Location getUserLocation() {
@@ -76,12 +86,17 @@ public class ProjectPresenter extends Thread implements Presenter{
 
     @Override
     public void initiatePictureLoader() {
-        pictureLoader.start();
+        if(pictureLoader.getState() == Thread.State.NEW){
+            pictureLoader.start();
+        }
     }
 
     @Override
-    public void stopPictureLoader(){
-        pictureLoader.interrupt();
+    public void stopPictureLoader() {
+        if(pictureLoader.isRunning()){
+            pictureLoader.stopPictureLoader();
+            pictureLoader = new PictureLoader(model);
+        }
     }
     @Override
     public void storeDataBase() {
@@ -94,5 +109,10 @@ public class ProjectPresenter extends Thread implements Presenter{
             Log.e(TAG, "Error: StoreDataBase - DB file not created");
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void setContext(Context c) {
+        appContext = c;
     }
 }

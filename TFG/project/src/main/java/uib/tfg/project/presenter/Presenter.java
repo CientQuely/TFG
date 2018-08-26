@@ -18,4 +18,5 @@ public interface Presenter {
     void initiatePictureLoader();
     void stopPictureLoader();
     void storeDataBase();
+    void setContext(Context c);
 }

@@ -66,4 +66,7 @@ public class UserData extends Observable {
     public void setObserver(Observer observer){
         this.addObserver(observer);
     }
+    public void removeObserver(Observer observer) {
+        this.deleteObserver(observer);
+    }
 }

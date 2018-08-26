@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Looper;
 import android.support.v4.app.ActivityCompat;
 import android.widget.Toast;
 import java.util.concurrent.Semaphore;
@@ -134,6 +135,7 @@ public class AugmentedReality extends Activity implements View{
     @Override
     public void onResume(){
         super.onResume();
+        presenter.setContext(this);
         if(Permits.CAMERA_PERMIT && !cameraStream.cameraAvailable()){
             cameraStream.start();
         }
@@ -147,15 +149,20 @@ public class AugmentedReality extends Activity implements View{
             presenter.initiatePictureLoader();
         }
         if(Permits.hasAllPermits(this)){
-            virtualStream.start();
+            if(virtualStream.getState() == Thread.State.NEW){
+                virtualStream.start();
+            }
         }
     }
 
     protected void onPause() {
         super.onPause();
+        virtualStream.stopVirtualReality();
+        virtualStream = new VirtualCameraView(this, this.findViewById(R.id.virtual_view),
+                this.findViewById(R.id.debbugerText),presenter, "View/VirtualCameraView");
         presenter.stopLocationService();
         presenter.stopSensorsService();
         presenter.stopPictureLoader();
-        presenter.storeDataBase();
+        //presenter.storeDataBase();
     }
 }
