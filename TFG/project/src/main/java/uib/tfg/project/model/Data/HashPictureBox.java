@@ -49,6 +49,7 @@ public class HashPictureBox {
     }
 
     public static Point getPictureBoxPosition(Location location){
+        if(location == null) return new Point(-1,-1);
         int x_position = (int)((float)location.getLatitude()/(BOX_METERS*METER_CORRELATION));
         int y_position = (int)((float)location.getLongitude()/(BOX_METERS*METER_CORRELATION));
         return new Point(x_position,y_position);

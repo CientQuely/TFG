@@ -55,7 +55,10 @@ public class ProjectModel implements Model{
 
         //En caso de no estar vacia carga el fichero de la
         //base de datos en el hash
-        if(db_config.getDB_SIZE() == 0) return;
+        if(db_config.getDB_SIZE() == 0){
+            db_mutex.release();
+            return;
+        }
 
         //Read database
         try {
