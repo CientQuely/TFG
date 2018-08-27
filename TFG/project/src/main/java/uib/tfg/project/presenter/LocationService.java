@@ -43,8 +43,8 @@ public class LocationService{
         public void onLocationChanged(Location location) {
             if(isBetterLocation(location, model.getUserCurrentLocation())){
                 model.setUserCurrentLocation(location);
-                // Log.d(TAG, "Actual location is Latitude: "+location.getLatitude()+
-                // " , and Longitude: "+location.getLongitude()+ ".");
+                Log.d(TAG, "Actual location is Latitude: "+location.getLatitude()+
+                        " , and Longitude: "+location.getLongitude()+ ".");
             }
         }
 
