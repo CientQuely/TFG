@@ -15,6 +15,8 @@ public class VirtualCameraView extends Thread {
     private Context appContext;
     private ImageView virtualView;
     private volatile boolean running = false;
+    private volatile boolean finish = false;
+    private static volatile int threadNumber = 0;
     private TextView debuggerText;
     private Presenter presenter;
     private String TAG;
@@ -37,30 +39,37 @@ public class VirtualCameraView extends Thread {
     public void run(){
         running = true;
         Looper.prepare();
+        this.setName("VirtualCameraView"+threadNumber);
+        threadNumber++;
         startVirtualReality();
     }
 
 
     public void startVirtualReality(){
-        while(!interrupted()){
+        while(!finish){
             Location actual = presenter.getUserLocation();
             float [] rotation = presenter.getUserRotation();
             float [] acceleration = presenter.getUserAcceleration();
             try{
+                String text = "";
                 if(actual != null){
-                    String text = "Lat: "+  actual.getLatitude() + ", Long: " + actual.getLongitude()+"\n";
-                    text += "Rot_X: "+ rotation[X_AXIS]+", Rot_Y: "+ rotation[Y_AXIS]+", Rot_Z: "+rotation[Z_AXIS]+"\n";
-                    text += "Acc_X: "+ acceleration[X_AXIS]+", Acc_Y: "+ acceleration[Y_AXIS]+", Acc_Z: "+acceleration[Z_AXIS];
-                    debuggerText.setText(text);
+                    text = "Lat: "+  actual.getLatitude() + ", Long: " + actual.getLongitude()+"\n";
                 }
-                Thread.sleep(10);
+                text += "Rot_X: "+ rotation[X_AXIS]+", Rot_Y: "+ rotation[Y_AXIS]+", Rot_Z: "+rotation[Z_AXIS]+"\n";
+                text += "Acc_X: "+ acceleration[X_AXIS]+", Acc_Y: "+ acceleration[Y_AXIS]+", Acc_Z: "+acceleration[Z_AXIS];
+                debuggerText.setText(text);
+                Thread.sleep(100);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
     }
 
+    public boolean isRunning(){
+        return running;
+    }
+
     public void stopVirtualReality(){
-        interrupt();
+        finish = true;
     }
 }

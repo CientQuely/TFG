@@ -19,7 +19,7 @@ import android.util.Log;
 
 import uib.tfg.project.model.Model;
 
-public class SensorsService extends Thread {
+public class SensorsService {
     private Context appContext;
     private String TAG;
     private Model model;
@@ -78,17 +78,19 @@ public class SensorsService extends Thread {
         return running;
     }
 
-    @Override
-    public void run(){
-        running = true;
-        Looper.prepare();
-        initiateSensorsListener();
-        Looper.loop();
+    public void start(){
+        if(!running){
+            running = true;
+            initiateSensorsListener();
+        }
     }
 
     public void stopSensorsService() {
-        sensorsManager.unregisterListener(gyroscopeListener);
-        sensorsManager.unregisterListener(accelerometerListener);
+        if(running){
+            sensorsManager.unregisterListener(gyroscopeListener);
+            sensorsManager.unregisterListener(accelerometerListener);
+            running = false;
+        }
     }
 
 }

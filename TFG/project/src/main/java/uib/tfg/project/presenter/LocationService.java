@@ -23,17 +23,57 @@ import android.util.Log;
 
 import uib.tfg.project.model.Model;
 
-public class LocationService extends Thread implements LocationListener {
+public class LocationService{
 
     private Context appContext;
     private String TAG;
     private Model model;
+    private static volatile int threadNumber = 1;
     private final long INIT_TIME = 100; // in milliseconds
     private final float INIT_DIST = 1; // in meters
     private final int HALF_MINUTE = 1000 * 30;
     private volatile boolean running = false;
     private boolean GPS_ENABLED = false;
     private LocationManager locationManager;
+    private volatile boolean finish = false;
+    Object lock = new Object();
+    private LocationListener locationListener = new LocationListener() {
+
+        @Override
+        public void onLocationChanged(Location location) {
+            if(isBetterLocation(location, model.getUserCurrentLocation())){
+                model.setUserCurrentLocation(location);
+                // Log.d(TAG, "Actual location is Latitude: "+location.getLatitude()+
+                // " , and Longitude: "+location.getLongitude()+ ".");
+            }
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            if (provider.equals(LocationManager.GPS_PROVIDER)) {
+                if (status == LocationProvider.OUT_OF_SERVICE) {
+                    GPS_ENABLED = false;
+                } else {
+                    GPS_ENABLED = true;
+                }
+            }
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            if(provider.equals(LocationManager.GPS_PROVIDER)){
+                GPS_ENABLED = true;
+            }
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            if(provider.equals(LocationManager.GPS_PROVIDER)){
+                GPS_ENABLED = false;
+            }
+        }
+
+    };
 
     public LocationService(Context appContext, Model model, String TAG) {
         this.appContext = appContext;
@@ -102,9 +142,7 @@ public class LocationService extends Thread implements LocationListener {
                 String bestProvider = locationManager.getBestProvider(criteria,false);
                 model.setUserCurrentLocation(locationManager.getLastKnownLocation(bestProvider));
             }
-            locationManager.requestLocationUpdates(INIT_TIME, INIT_DIST, criteria, this, null);
-        }else{
-            Log.e(TAG,"LocationService don't have permits to obtain GPS data");
+            locationManager.requestLocationUpdates(INIT_TIME, INIT_DIST, criteria, locationListener, null);
         }
 
     }
@@ -113,45 +151,10 @@ public class LocationService extends Thread implements LocationListener {
         return running;
     }
 
-    @Override
-    public void run(){
-        running = true;
-        Looper.prepare();
-        initiateGPSListener();
-        Looper.loop();
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        if(isBetterLocation(location, model.getUserCurrentLocation())){
-            model.setUserCurrentLocation(location);
-            Log.d(TAG, "Actual location is Latitude: "+location.getLatitude()+
-                    " , and Longitude: "+location.getLongitude()+ ".");
-        }
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-        if (provider.equals(LocationManager.GPS_PROVIDER)) {
-            if (status == LocationProvider.OUT_OF_SERVICE) {
-                GPS_ENABLED = false;
-            } else {
-                GPS_ENABLED = true;
-            }
-        }
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-        if(provider.equals(LocationManager.GPS_PROVIDER)){
-            GPS_ENABLED = true;
-        }
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-        if(provider.equals(LocationManager.GPS_PROVIDER)){
-            GPS_ENABLED = false;
+    public void start(){
+        if(!running){
+            running = true;
+            initiateGPSListener();
         }
     }
 
@@ -165,7 +168,8 @@ public class LocationService extends Thread implements LocationListener {
     }
 
     public void stopLocationService() {
-        locationManager.removeUpdates(this);
-        interrupt();
+        if(running){
+            locationManager.removeUpdates(locationListener);
+        }
     }
 }

@@ -42,7 +42,7 @@ public class ProjectPresenter extends Thread implements Presenter{
 
     @Override
     public void initiateLocationService() {
-        if(locationService.getState() == Thread.State.NEW){
+        if(!locationService.isRunning()){
             locationService.start();
         }
     }
@@ -51,13 +51,12 @@ public class ProjectPresenter extends Thread implements Presenter{
     public void stopLocationService() {
         if(locationService.isRunning()){
             locationService.stopLocationService();
-            locationService = new LocationService(appContext, model, TAG);
         }
     }
 
     @Override
     public void initiateSensorsService(){
-        if(sensorService.getState() == Thread.State.NEW){
+        if(!sensorService.isRunning()){
             sensorService.start();
         }
     }
@@ -66,7 +65,6 @@ public class ProjectPresenter extends Thread implements Presenter{
     public void stopSensorsService(){
         if(sensorService.isRunning()){
             sensorService.stopSensorsService();
-            sensorService = new SensorsService(appContext, model, TAG);
         }
     }
     @Override
@@ -95,6 +93,7 @@ public class ProjectPresenter extends Thread implements Presenter{
     public void stopPictureLoader() {
         if(pictureLoader.isRunning()){
             pictureLoader.stopPictureLoader();
+            pictureLoader.interrupt();
             pictureLoader = new PictureLoader(model);
         }
     }

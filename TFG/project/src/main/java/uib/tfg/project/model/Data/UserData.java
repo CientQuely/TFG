@@ -16,10 +16,8 @@ public class UserData extends Observable {
     public final int Z_AXIS = 2;
     public UserData(float user_id){
         this.user_id = user_id;
-        this.user_rotation = new float
-                [3];
+        this.user_rotation = new float [3];
         this.user_acceleration = new float [3];
-        this.user_location = null;
     }
     public float getUser_id() {
         return user_id;

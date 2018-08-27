@@ -47,8 +47,6 @@ public class AugmentedReality extends Activity implements View{
 
         //Crea la vista de la camara
         cameraStream = new CameraView(this, this.findViewById(R.id.camera_view), "View/Camera/CameraView");
-        virtualStream = new VirtualCameraView(this, this.findViewById(R.id.virtual_view),
-                this.findViewById(R.id.debbugerText),presenter, "View/VirtualCameraView");
 
     }
 
@@ -136,8 +134,8 @@ public class AugmentedReality extends Activity implements View{
     public void onResume(){
         super.onResume();
         presenter.setContext(this);
-        if(Permits.CAMERA_PERMIT && !cameraStream.cameraAvailable()){
-            cameraStream.start();
+        if(!cameraStream.isAvailable()){
+           cameraStream.start();
         }
         if(Permits.GPS_PERMIT){
            presenter.initiateLocationService();
@@ -149,17 +147,18 @@ public class AugmentedReality extends Activity implements View{
             presenter.initiatePictureLoader();
         }
         if(Permits.hasAllPermits(this)){
-            if(virtualStream.getState() == Thread.State.NEW){
-                virtualStream.start();
-            }
+            virtualStream = new VirtualCameraView(this, this.findViewById(R.id.virtual_view),
+                    this.findViewById(R.id.debbugerText),presenter, "View/VirtualCameraView");
+            virtualStream.start();
         }
     }
 
     protected void onPause() {
         super.onPause();
-        virtualStream.stopVirtualReality();
-        virtualStream = new VirtualCameraView(this, this.findViewById(R.id.virtual_view),
-                this.findViewById(R.id.debbugerText),presenter, "View/VirtualCameraView");
+        if(virtualStream.isRunning()){
+            virtualStream.stopVirtualReality();
+        }
+        cameraStream.stopCameraStream();
         presenter.stopLocationService();
         presenter.stopSensorsService();
         presenter.stopPictureLoader();

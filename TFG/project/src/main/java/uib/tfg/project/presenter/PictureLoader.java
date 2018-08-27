@@ -14,17 +14,17 @@ public class PictureLoader extends Thread implements Observer {
 
     private Model model;
     private volatile boolean running = false;
+    private static volatile int threadNumber = 1;
     private String TAG = "Presenter/PictureLoader";
     private static boolean DB_LOADED;
     private static final int BOXES_RANGE = 1;
     private static final float MIN_TIME = 3000; //in milliseconds
-    private static volatile boolean thread_interrupted;
-    private Object lock = new Object();
+    private static Object lock = new Object();
+    private volatile boolean thread_interrupted = false;
 
     public PictureLoader(Model model){
         this.model = model;
         DB_LOADED = false;
-        thread_interrupted = false;
     }
 
     public boolean isRunning() {
@@ -34,6 +34,8 @@ public class PictureLoader extends Thread implements Observer {
     @Override
     public void run(){
         Looper.prepare();
+        this.setName("PictureLoader"+threadNumber);
+        threadNumber++;
         model.setUserObserver(this);
         running = true;
         try {
@@ -60,14 +62,13 @@ public class PictureLoader extends Thread implements Observer {
                 Log.i(TAG,"User box ["
                         + box_loaded.x + "," + box_loaded.y +"] bitmaps loaded correctly");
             } catch (InterruptedException e) {
-                this.interrupt();
+                e.getStackTrace();
             }
         }
-        thread_interrupted = false;
     }
 
     public void stopPictureLoader(){
-        thread_interrupted = true;
+        this.thread_interrupted = true;
         model.removeUserObserver(this);
         synchronized (lock) {
             lock.notifyAll();

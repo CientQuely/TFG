@@ -35,12 +35,13 @@ import static android.content.Context.CAMERA_SERVICE;
 public class CameraView extends Thread{
     private Context appContext;
     private String TAG;
-    ;
+    private static volatile int threadNumber = 1;
     private Size cameraPreviewSize;
     private volatile TextureView cameraTextureView;
     private String cameraId;
     private CameraDevice camera;
-    CameraCharacteristics camCharacts;
+    private CameraManager camManager;
+    private CameraCharacteristics camCharacts;
     //Peticion para capturar la cámara
     private CaptureRequest camPreviewCaptureRequest;
     //Metodo callback para construir la petición
@@ -134,12 +135,12 @@ public class CameraView extends Thread{
             Log.e(TAG, "This app don't have permissions to obtain the camera");
             return;
         }
-        CameraManager cameraM = (CameraManager) appContext.getSystemService(CAMERA_SERVICE);
-        if (cameraM == null) {
+        camManager = (CameraManager) appContext.getSystemService(CAMERA_SERVICE);
+        if (camManager == null) {
             Log.e(TAG, "Camera system service not found");
             return;
         }
-        cameraId = obtainBackCameraID(cameraM);
+        cameraId = obtainBackCameraID(camManager);
         if (cameraId == null) {
             Log.e(TAG, "Back camera not found on this device");
             return;  //Cámara trasera no encontrada
@@ -153,12 +154,11 @@ public class CameraView extends Thread{
     }
 
     public void openCamera() {
-        CameraManager camM = (CameraManager) appContext.getSystemService(Context.CAMERA_SERVICE);
         try {
             if (ActivityCompat.checkSelfPermission(appContext, Manifest.permission.CAMERA)
                     != PackageManager.PERMISSION_GRANTED)
                 return;
-            camM.openCamera(cameraId, deviceCallback, null);
+            camManager.openCamera(cameraId, deviceCallback, null);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -256,10 +256,15 @@ public class CameraView extends Thread{
     @Override
     public void run(){
         Looper.prepare();
+        this.setName("CameraView"+threadNumber);
+        threadNumber++;
         cameraTextureView.setSurfaceTextureListener(camSurfaceTextureListener);
-        Looper.loop();
     }
 
+    public boolean isAvailable(){
+        if(cameraTextureView == null) return false;
+        return cameraTextureView.isAvailable();
+    }
     /**
      * Crea la preview de la cámara enlazando la TextureView con el CameraDevice
      */
@@ -305,5 +310,8 @@ public class CameraView extends Thread{
         } catch (CameraAccessException e){
             e.printStackTrace();
         }
+    }
+
+    public void stopCameraStream() {
     }
 }
