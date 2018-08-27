@@ -6,7 +6,6 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
-import android.os.Looper;
 import android.support.v4.app.ActivityCompat;
 import android.widget.Toast;
 import java.util.concurrent.Semaphore;
@@ -23,6 +22,7 @@ public class AugmentedReality extends Activity implements View{
     private Presenter presenter;
     private CameraView cameraStream;
     private VirtualCameraView virtualStream;
+    private SlidingMenu slidingMenu;
     private final Semaphore mutex = new Semaphore(0);
     private static final String TAG = "View/AugmentedReality";
 
@@ -47,6 +47,7 @@ public class AugmentedReality extends Activity implements View{
 
         //Crea la vista de la camara
         cameraStream = new CameraView(this, this.findViewById(R.id.camera_view), "View/Camera/CameraView");
+        slidingMenu = new SlidingMenu(this, this.findViewById(R.id.nav_view));
 
     }
 
