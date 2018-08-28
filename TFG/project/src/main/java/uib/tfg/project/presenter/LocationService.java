@@ -34,10 +34,10 @@ public class LocationService{
     private final int HALF_MINUTE = 1000 * 30;
     private volatile boolean running = false;
     private boolean GPS_ENABLED = false;
-    private LocationManager locationManager;
+    private volatile LocationManager locationManager;
     private volatile boolean finish = false;
     Object lock = new Object();
-    private LocationListener locationListener = new LocationListener() {
+    private volatile LocationListener locationListener = new LocationListener() {
 
         @Override
         public void onLocationChanged(Location location) {
@@ -152,24 +152,22 @@ public class LocationService{
     }
 
     public void start(){
-        if(!running){
-            running = true;
-            initiateGPSListener();
+        synchronized (lock){
+            if(!running){
+                running = true;
+                initiateGPSListener();
+            }
         }
     }
 
-
-    public boolean isGPS_ENABLED() {
-        return GPS_ENABLED;
-    }
-
-    public void setGPS_ENABLED(boolean GPS_ENABLED) {
-        this.GPS_ENABLED = GPS_ENABLED;
-    }
 
     public void stopLocationService() {
-        if(running){
-            locationManager.removeUpdates(locationListener);
+        synchronized (lock){
+            if(running){
+                locationManager.removeUpdates(locationListener);
+                running = false;
+            }
         }
+
     }
 }

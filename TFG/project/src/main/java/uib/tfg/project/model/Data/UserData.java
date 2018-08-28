@@ -1,5 +1,6 @@
 package uib.tfg.project.model.Data;
 
+import android.graphics.Bitmap;
 import android.location.Location;
 
 import java.util.Observable;
@@ -11,10 +12,12 @@ public class UserData extends Observable {
     private volatile Location user_location;
     private volatile float [] user_rotation;
     private volatile float [] user_acceleration;
+    private volatile Bitmap currentBitmap;
     public final int X_AXIS = 0;
     public final int Y_AXIS = 1;
     public final int Z_AXIS = 2;
     public UserData(float user_id){
+        currentBitmap = null;
         this.user_id = user_id;
         this.user_rotation = new float [3];
         this.user_acceleration = new float [3];
@@ -66,5 +69,9 @@ public class UserData extends Observable {
     }
     public void removeObserver(Observer observer) {
         this.deleteObserver(observer);
+    }
+
+    public void setCurrentBitmap(Bitmap currentBitmap) {
+        this.currentBitmap = currentBitmap;
     }
 }

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group>
+        <item
+            android:id="@+id/nav_select_image"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="@string/select_image" />
+        <item
+            android:id="@+id/nav_user_height"
+            android:icon="@drawable/ic_menu_user_height"
+            android:title="@string/set_user_height" />
+    </group>
+
+    <item android:title="@string/debug">
+        <menu>
+            <item
+                android:id="@+id/nav_debug_logs"
+                android:icon="@drawable/ic_menu_share"
+                android:title="@string/logs_disabled" />
+            <item
+                android:id="@+id/nav_debug_gps"
+                android:icon="@drawable/ic_menu_send"
+                android:checked="true"
+                android:title="@string/gps_enabled" />
+            <item
+                android:id="@+id/nav_debug_database"
+                android:icon="@drawable/ic_menu_send"
+                android:title="@string/drop_database" />
+        </menu>
+    </item>
+
+</menu>

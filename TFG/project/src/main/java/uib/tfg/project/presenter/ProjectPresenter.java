@@ -114,4 +114,14 @@ public class ProjectPresenter extends Thread implements Presenter{
     public void setContext(Context c) {
         appContext = c;
     }
+
+    @Override
+    public boolean isLocationServiceEnabled() {
+        return locationService.isRunning();
+    }
+
+    @Override
+    public void setUserCurrentBitmap(Bitmap bitmap) {
+        model.setCurrentUserBitmap(bitmap);
+    }
 }

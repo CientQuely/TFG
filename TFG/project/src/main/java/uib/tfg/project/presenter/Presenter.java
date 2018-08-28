@@ -1,6 +1,7 @@
 package uib.tfg.project.presenter;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.location.Location;
 
 /**
@@ -19,4 +20,6 @@ public interface Presenter {
     void stopPictureLoader();
     void storeDataBase();
     void setContext(Context c);
+    boolean isLocationServiceEnabled();
+    void setUserCurrentBitmap(Bitmap bitmap);
 }

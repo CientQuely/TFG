@@ -16,7 +16,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true">
         <activity android:name="uib.tfg.project.ProjectView"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+            android:theme="@style/FullscreenTheme">
+            <!--android:theme="@android:style/Theme.NoTitleBar.Fullscreen">-->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -27,7 +28,7 @@
             android:name="uib.tfg.project.view.AugmentedReality"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:screenOrientation="landscape"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+            android:theme="@style/FullscreenTheme">
         </activity>
     </application>
 

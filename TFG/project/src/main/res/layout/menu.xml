@@ -47,13 +47,11 @@
         <TextView
             android:id="@+id/tv_creatorCredentials"
             android:layout_width="match_parent"
-
+            android:textAppearance="@style/TextAppearance.AppCompat.Body1"
             android:layout_height="50dp"
             android:layout_marginTop="60dp"
             android:gravity="bottom"
             android:text="Creador: Miquel Àngel Ramis Llompart \nProyecto de Final de Grado"
-
-            android:textAppearance="@style/TextAppearance.AppCompat.Inverse"
 
             />
 

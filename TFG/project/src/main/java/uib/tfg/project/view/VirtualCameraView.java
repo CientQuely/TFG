@@ -17,6 +17,7 @@ public class VirtualCameraView extends Thread {
     private volatile boolean running = false;
     private volatile boolean finish = false;
     private static volatile int threadNumber = 0;
+    private static volatile boolean logs_enabled = false;
     private TextView debuggerText;
     private Presenter presenter;
     private String TAG;
@@ -52,11 +53,13 @@ public class VirtualCameraView extends Thread {
             float [] acceleration = presenter.getUserAcceleration();
             try{
                 String text = "";
-                if(actual != null){
-                    text = "Lat: "+  actual.getLatitude() + ", Long: " + actual.getLongitude()+"\n";
+                if(logs_enabled){
+                    if(actual != null){
+                        text = "Lat: "+  actual.getLatitude() + ", Long: " + actual.getLongitude()+"\n";
+                    }
+                    text += "Rot_X: "+ rotation[X_AXIS]+", Rot_Y: "+ rotation[Y_AXIS]+", Rot_Z: "+rotation[Z_AXIS]+"\n";
+                    text += "Acc_X: "+ acceleration[X_AXIS]+", Acc_Y: "+ acceleration[Y_AXIS]+", Acc_Z: "+acceleration[Z_AXIS];
                 }
-                text += "Rot_X: "+ rotation[X_AXIS]+", Rot_Y: "+ rotation[Y_AXIS]+", Rot_Z: "+rotation[Z_AXIS]+"\n";
-                text += "Acc_X: "+ acceleration[X_AXIS]+", Acc_Y: "+ acceleration[Y_AXIS]+", Acc_Z: "+acceleration[Z_AXIS];
                 debuggerText.setText(text);
                 Thread.sleep(100);
             } catch (InterruptedException e) {
@@ -71,5 +74,13 @@ public class VirtualCameraView extends Thread {
 
     public void stopVirtualReality(){
         finish = true;
+    }
+
+    public static void enableLogs(boolean state){
+        logs_enabled = state;
+    }
+
+    public static boolean debugLogsEnabled(){
+        return logs_enabled;
     }
 }

@@ -193,6 +193,11 @@ public class ProjectModel implements Model{
     }
 
     @Override
+    public void setCurrentUserBitmap(Bitmap bitmap) {
+        user_data.setCurrentBitmap(bitmap);
+    }
+
+    @Override
     public Location getUserCurrentLocation() {
         return user_data.getUser_location();
     }

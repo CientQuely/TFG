@@ -1,6 +1,7 @@
 package uib.tfg.project.model;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.location.Location;
 
@@ -27,4 +28,6 @@ public interface Model {
     Point loadNearBoxes();
     void setUserObserver(Observer o);
     void removeUserObserver(Observer o);
+
+    void setCurrentUserBitmap(Bitmap bitmap);
 }

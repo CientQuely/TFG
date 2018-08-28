@@ -3,11 +3,20 @@ package uib.tfg.project.view;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
+
+import java.io.IOException;
 import java.util.concurrent.Semaphore;
 import android.util.Log;
 
@@ -43,11 +52,18 @@ public class AugmentedReality extends Activity implements View{
             goToMenu();
             return;
         }
+
         setContentView(R.layout.activity_augmented_reality);
 
+        try {
+            slidingMenu = new SlidingMenu(this, this.findViewById(R.id.nav_view), presenter);
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
         //Crea la vista de la camara
         cameraStream = new CameraView(this, this.findViewById(R.id.camera_view), "View/Camera/CameraView");
-        slidingMenu = new SlidingMenu(this, this.findViewById(R.id.nav_view));
 
     }
 
@@ -117,9 +133,9 @@ public class AugmentedReality extends Activity implements View{
             }
 
         }else{
-                Toast.makeText(this, "Esta app no puede funcionar si no se aceptan" +
-                                "todos los permisos.",
-                        Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Esta app no puede funcionar si no se aceptan" +
+                            "todos los permisos.",
+                    Toast.LENGTH_LONG).show();
             goToMenu();
         }
         return;
@@ -164,5 +180,27 @@ public class AugmentedReality extends Activity implements View{
         presenter.stopSensorsService();
         presenter.stopPictureLoader();
         //presenter.storeDataBase();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+        if (requestCode == SlidingMenu.PICK_IMAGE && data != null && resultCode != 0) {
+                Uri selectedImage = data.getData();
+            Bitmap bitmap = null;
+            try {
+                bitmap = MediaStore.Images.
+                        Media.getBitmap(this.getContentResolver(), selectedImage);
+                if( bitmap != null){
+                    presenter.setUserCurrentBitmap(bitmap);
+                    slidingMenu.showMenuMessage("Image loaded correctly");
+                }else{
+                    slidingMenu.showMenuMessage("Image could not be loaded");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
     }
 }
