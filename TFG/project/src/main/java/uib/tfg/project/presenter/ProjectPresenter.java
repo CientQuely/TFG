@@ -124,4 +124,14 @@ public class ProjectPresenter extends Thread implements Presenter{
     public void setUserCurrentBitmap(Bitmap bitmap) {
         model.setCurrentUserBitmap(bitmap);
     }
+
+    @Override
+    public double getUserHeight() {
+        return model.getUserHeight();
+    }
+
+    @Override
+    public void setUserHeight(double height) {
+        model.setUserHeight(height);
+    }
 }

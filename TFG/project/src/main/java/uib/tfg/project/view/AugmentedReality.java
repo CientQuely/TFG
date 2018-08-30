@@ -44,7 +44,6 @@ public class AugmentedReality extends Activity implements View{
         super.onCreate(savedInstanceState);
         Bitmap not_foung_img = BitmapFactory.decodeResource(this.getResources(), R.drawable.not_found_img);
         presenter = new ProjectPresenter(this, this, not_foung_img);
-        //Se encarga de obtener todos los permisos
         if(!hasFeatures()){
             Toast.makeText(this, "Tu movil no posee todas las características para" +
                             "poder ejecutar esta app.",
@@ -142,7 +141,6 @@ public class AugmentedReality extends Activity implements View{
     }
 
     private void goToMenu() {
-        //vuelve
         Intent pv = new Intent(this, ProjectView.class);
         startActivity(pv);
     }
@@ -187,7 +185,7 @@ public class AugmentedReality extends Activity implements View{
     {
         if (requestCode == SlidingMenu.PICK_IMAGE && data != null && resultCode != 0) {
                 Uri selectedImage = data.getData();
-            Bitmap bitmap = null;
+            Bitmap bitmap;
             try {
                 bitmap = MediaStore.Images.
                         Media.getBitmap(this.getContentResolver(), selectedImage);

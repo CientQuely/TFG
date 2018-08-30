@@ -39,6 +39,7 @@
             android:cropToPadding="false"
             android:fadeScrollbars="false"
             android:onClick="onStartClick"
+            android:foregroundGravity="top"
             android:scaleType="centerCrop"
             android:src="@drawable/menu_bt_start"
             android:visibility="visible"/>

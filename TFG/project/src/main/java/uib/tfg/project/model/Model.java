@@ -30,4 +30,6 @@ public interface Model {
     void removeUserObserver(Observer o);
 
     void setCurrentUserBitmap(Bitmap bitmap);
+    double getUserHeight();
+    void setUserHeight(double height);
 }

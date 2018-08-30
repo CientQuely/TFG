@@ -198,6 +198,16 @@ public class ProjectModel implements Model{
     }
 
     @Override
+    public double getUserHeight() {
+        return user_data.getUserHeight();
+    }
+
+    @Override
+    public void setUserHeight(double height) {
+        user_data.setUserHeight(height);
+    }
+
+    @Override
     public Location getUserCurrentLocation() {
         return user_data.getUser_location();
     }

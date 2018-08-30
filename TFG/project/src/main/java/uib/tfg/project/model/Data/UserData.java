@@ -16,6 +16,7 @@ public class UserData extends Observable {
     public final int X_AXIS = 0;
     public final int Y_AXIS = 1;
     public final int Z_AXIS = 2;
+    private double user_height;
     public UserData(float user_id){
         currentBitmap = null;
         this.user_id = user_id;
@@ -73,5 +74,13 @@ public class UserData extends Observable {
 
     public void setCurrentBitmap(Bitmap currentBitmap) {
         this.currentBitmap = currentBitmap;
+    }
+
+    public double getUserHeight() {
+        return user_height;
+    }
+
+    public void setUserHeight(double height) {
+        user_height = height;
     }
 }

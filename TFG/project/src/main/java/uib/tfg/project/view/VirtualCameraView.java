@@ -9,6 +9,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.view.View;
 
+import java.text.DecimalFormat;
+
 import uib.tfg.project.presenter.Presenter;
 
 public class VirtualCameraView extends Thread {
@@ -24,6 +26,8 @@ public class VirtualCameraView extends Thread {
     private final int X_AXIS = 0;
     private final int Y_AXIS = 1;
     private final int Z_AXIS = 2;
+    private static DecimalFormat sensors;
+    private static DecimalFormat location;
 
     public VirtualCameraView(Context cont, View v, View debugger, Presenter p, String TAG){
         appContext = cont;
@@ -34,6 +38,8 @@ public class VirtualCameraView extends Thread {
         }
         this.TAG = TAG;
         this.presenter = p;
+        sensors = new DecimalFormat("#.####");
+        location = new DecimalFormat("##.########");
     }
 
     @Override
@@ -54,11 +60,7 @@ public class VirtualCameraView extends Thread {
             try{
                 String text = "";
                 if(logs_enabled){
-                    if(actual != null){
-                        text = "Lat: "+  actual.getLatitude() + ", Long: " + actual.getLongitude()+"\n";
-                    }
-                    text += "Rot_X: "+ rotation[X_AXIS]+", Rot_Y: "+ rotation[Y_AXIS]+", Rot_Z: "+rotation[Z_AXIS]+"\n";
-                    text += "Acc_X: "+ acceleration[X_AXIS]+", Acc_Y: "+ acceleration[Y_AXIS]+", Acc_Z: "+acceleration[Z_AXIS];
+                    text = print_debug_logs(actual, rotation, acceleration);
                 }
                 debuggerText.setText(text);
                 Thread.sleep(100);
@@ -66,6 +68,22 @@ public class VirtualCameraView extends Thread {
                 e.printStackTrace();
             }
         }
+    }
+
+    private String print_debug_logs(Location actual, float[] rotation, float[] acceleration) {
+        String text = "";
+        if(actual != null){
+            text = "Lat: "+  location.format(actual.getLatitude())
+                    + ", Long: " + location.format(actual.getLongitude())+"\n";
+        }
+        text += "Rot_X: "+ sensors.format(rotation[X_AXIS])
+                +", Rot_Y: "+ sensors.format(rotation[Y_AXIS])
+                +", Rot_Z: "+sensors.format(rotation[Z_AXIS])+"\n";
+        text += "Acc_X: "+ sensors.format(acceleration[X_AXIS])
+                +", Acc_Y: "+ sensors.format(acceleration[Y_AXIS])
+                +", Acc_Z: "+ sensors.format(acceleration[Z_AXIS]);
+
+        return text;
     }
 
     public boolean isRunning(){

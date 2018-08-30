@@ -22,4 +22,6 @@ public interface Presenter {
     void setContext(Context c);
     boolean isLocationServiceEnabled();
     void setUserCurrentBitmap(Bitmap bitmap);
+    double getUserHeight();
+    void setUserHeight(double height);
 }
