@@ -5,14 +5,15 @@ import android.location.Location;
 
 import java.util.Observable;
 import java.util.Observer;
-import java.util.Vector;
+
+import uib.tfg.project.model.representation.Quaternion;
 
 public class UserData extends Observable {
     private float user_id;
     private volatile Location user_location;
-    private volatile float [] user_rotation;
-    private volatile float [] user_acceleration;
+    private volatile Quaternion user_rotation;
     private volatile Bitmap currentBitmap;
+    private volatile String bitmapPath;
     public final int X_AXIS = 0;
     public final int Y_AXIS = 1;
     public final int Z_AXIS = 2;
@@ -20,8 +21,7 @@ public class UserData extends Observable {
     public UserData(float user_id){
         currentBitmap = null;
         this.user_id = user_id;
-        this.user_rotation = new float [3];
-        this.user_acceleration = new float [3];
+        this.user_rotation = new Quaternion();
     }
     public float getUser_id() {
         return user_id;
@@ -44,26 +44,16 @@ public class UserData extends Observable {
         this.user_location = user_location;
     }
 
-    public void setUser_rotation(float [] rotation){
-        if(rotation.length != 3) return;
-            this.user_rotation[X_AXIS] = rotation[0];
-            this.user_rotation[Y_AXIS] = rotation[1];
-            this.user_rotation[Z_AXIS] = rotation[2];
+    public void setRotation(Quaternion newRotation){
+        if(newRotation != null){
+            this.user_rotation = newRotation;
+        }
     }
 
-    public void setUser_acceleration(float [] acceleration) {
-        if(acceleration.length != 3) return;
-        this.user_acceleration[X_AXIS] = acceleration[0];
-        this.user_acceleration[Y_AXIS] = acceleration[1];
-        this.user_acceleration[Z_AXIS] = acceleration[2];
+    public Quaternion getRotation(){
+        return user_rotation;
     }
 
-    public float [] get_Rotation(){
-        return user_rotation.clone();
-    }
-    public float [] get_Acceleration(){
-        return user_acceleration.clone();
-    }
 
     public void setObserver(Observer observer){
         this.addObserver(observer);
@@ -72,7 +62,8 @@ public class UserData extends Observable {
         this.deleteObserver(observer);
     }
 
-    public void setCurrentBitmap(Bitmap currentBitmap) {
+    public void setCurrentBitmap(String path, Bitmap currentBitmap) {
+        this.bitmapPath = path;
         this.currentBitmap = currentBitmap;
     }
 
@@ -82,5 +73,13 @@ public class UserData extends Observable {
 
     public void setUserHeight(double height) {
         user_height = height;
+    }
+
+    public Bitmap getCurrentBitmap(){
+        return currentBitmap;
+    }
+
+    public String getCurrentBitmapPath(){
+        return bitmapPath;
     }
 }

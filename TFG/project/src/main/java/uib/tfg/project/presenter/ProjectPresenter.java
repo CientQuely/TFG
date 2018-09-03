@@ -2,12 +2,15 @@ package uib.tfg.project.presenter;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.hardware.SensorManager;
 import android.location.Location;
 import android.util.Log;
 
+import uib.tfg.project.model.Data.PictureObject;
 import uib.tfg.project.model.Model;
 import uib.tfg.project.model.ModelException;
 import uib.tfg.project.model.ProjectModel;
+import uib.tfg.project.model.representation.Quaternion;
 import uib.tfg.project.view.AugmentedReality;
 import uib.tfg.project.view.View;
 
@@ -18,8 +21,9 @@ public class ProjectPresenter extends Thread implements Presenter{
     private View view;
     private Context appContext;
     private LocationService locationService;
-    private SensorsService sensorService;
+    //private SensorsService sensorService;
     private PictureLoader pictureLoader;
+    private OrientationSensorProvider sensorService;
     private final static String TAG = "Presenter";
     public ProjectPresenter (View v, Context appContext, Bitmap not_found_img){
         this.view = v;
@@ -30,7 +34,9 @@ public class ProjectPresenter extends Thread implements Presenter{
             e.printStackTrace();
         }
         this.locationService = new LocationService(appContext, model,"Presenter/LocationService: ");
-        this.sensorService = new SensorsService(appContext, model, "Presenter/SensorService: ");
+        //this.sensorService = new SensorsService(appContext, model, "Presenter/SensorService: ");
+        SensorManager sensorsManager = (SensorManager) appContext.getSystemService(Context.SENSOR_SERVICE);
+        sensorService = new OrientationSensorProvider(sensorsManager, model);
         pictureLoader = new PictureLoader(model);
 
     }
@@ -64,7 +70,7 @@ public class ProjectPresenter extends Thread implements Presenter{
     @Override
     public void stopSensorsService(){
         if(sensorService.isRunning()){
-            sensorService.stopSensorsService();
+            sensorService.stop();
         }
     }
     @Override
@@ -73,13 +79,8 @@ public class ProjectPresenter extends Thread implements Presenter{
     }
 
     @Override
-    public float[] getUserRotation() {
+    public Quaternion getUserRotation() {
         return model.getUserRotation();
-    }
-
-    @Override
-    public float[] getUserAcceleration() {
-        return model.getUserAcceleration();
     }
 
     @Override
@@ -121,8 +122,8 @@ public class ProjectPresenter extends Thread implements Presenter{
     }
 
     @Override
-    public void setUserCurrentBitmap(Bitmap bitmap) {
-        model.setCurrentUserBitmap(bitmap);
+    public void setUserCurrentBitmap(String path, Bitmap bitmap) {
+        model.setCurrentUserBitmap(path, bitmap);
     }
 
     @Override
@@ -134,4 +135,25 @@ public class ProjectPresenter extends Thread implements Presenter{
     public void setUserHeight(double height) {
         model.setUserHeight(height);
     }
+
+    @Override
+    public void deleteDataBase() {
+        model.deleteDataBase();
+    }
+
+    @Override
+    public Bitmap getCurrentBitmap(){
+        return model.getCurrentBitmap();
+    }
+
+    @Override
+    public void createPicture(Location new_location, float new_height) {
+        model.createPicture(new_location, new_height);
+    }
+
+    @Override
+    public void deletePicture(PictureObject pointed_picture) throws InterruptedException {
+        model.deletePicture(pointed_picture);
+    }
+
 }

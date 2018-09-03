@@ -19,6 +19,7 @@ import android.util.Log;
 
 import uib.tfg.project.model.Model;
 
+@Deprecated
 public class SensorsService {
     private Context appContext;
     private String TAG;
@@ -28,10 +29,32 @@ public class SensorsService {
     private volatile boolean running = false;
     private Sensor gyroscope;
     private Sensor accelerometer;
+    private Sensor magnetic;
+
+    private float[] mGyroscope;
+    private float[] mGravity;
+    private float[] mGeomagnetic;
+
     private SensorEventListener gyroscopeListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
-            model.setUserRotation(event.values);
+            if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE)
+                mGravity = event.values;
+
+            if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
+                mGyroscope = event.values;
+
+            if (mGyroscope != null && mGeomagnetic != null) {
+                float R[] = new float[9];
+                float I[] = new float[9];
+
+                boolean success = SensorManager.getRotationMatrix(R, I, mGyroscope, mGeomagnetic);
+                if (success) {
+                    float orientation[] = new float[3];
+                    SensorManager.getOrientation(R, orientation);
+                    //model.setUserRotation(orientation);
+                }
+            }
         }
 
         @Override
@@ -39,10 +62,26 @@ public class SensorsService {
 
         }
     };
-    private SensorEventListener accelerometerListener = new SensorEventListener() {
+    private SensorEventListener rotationListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
-            model.setUserAcceleration(event.values);
+            if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
+                mGravity = event.values;
+
+            if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
+                mGeomagnetic = event.values;
+
+            if (mGravity != null && mGeomagnetic != null) {
+                float R[] = new float[9];
+                float I[] = new float[9];
+
+                boolean success = SensorManager.getRotationMatrix(R, I, mGravity, mGeomagnetic);
+                if (success) {
+                    float orientation[] = new float[3];
+                    SensorManager.getOrientation(R, orientation);
+                    //model.setUserAcceleration(orientation);
+                }
+            }
         }
 
         @Override
@@ -61,12 +100,17 @@ public class SensorsService {
     private void initiateSensorsListener() {
         sensorsManager = (SensorManager) appContext.getSystemService(Context.SENSOR_SERVICE);
         gyroscope = sensorsManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        accelerometer = sensorsManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        accelerometer = sensorsManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        magnetic =sensorsManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         if (ActivityCompat.checkSelfPermission(appContext, Manifest.permission.BODY_SENSORS)
                 == PackageManager.PERMISSION_GRANTED) {
             sensorsManager.registerListener(gyroscopeListener, gyroscope,
                     SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_STATUS_ACCURACY_HIGH );
-            sensorsManager.registerListener(accelerometerListener, accelerometer,
+            sensorsManager.registerListener(gyroscopeListener, magnetic,
+                    SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_STATUS_ACCURACY_HIGH  );
+            sensorsManager.registerListener(rotationListener, accelerometer,
+                    SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_STATUS_ACCURACY_HIGH  );
+            sensorsManager.registerListener(rotationListener, magnetic,
                     SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_STATUS_ACCURACY_HIGH  );
         }else{
             Log.e(TAG,"LocationService don't have permits to obtain GPS data");
@@ -85,10 +129,10 @@ public class SensorsService {
         }
     }
 
-    public void stopSensorsService() {
+    public void stop() {
         if(running){
             sensorsManager.unregisterListener(gyroscopeListener);
-            sensorsManager.unregisterListener(accelerometerListener);
+            sensorsManager.unregisterListener(rotationListener);
             running = false;
         }
     }

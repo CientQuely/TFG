@@ -17,6 +17,7 @@ import uib.tfg.project.model.Data.ImageCache;
 import uib.tfg.project.model.Data.PictureBox;
 import uib.tfg.project.model.Data.PictureObject;
 import uib.tfg.project.model.Data.UserData;
+import uib.tfg.project.model.representation.Quaternion;
 import uib.tfg.project.presenter.Presenter;
 
 /**
@@ -111,13 +112,27 @@ public class ProjectModel implements Model{
 
 
     @Override
-    public void savePicture(Location location, double height, String img_path) throws InterruptedException {
+    public void createPicture(Location new_location, float new_height) {
+        Bitmap currentBitmap = user_data.getCurrentBitmap();
+        String path = user_data.getCurrentBitmapPath();
+        try {
+            savePicture(new_location, new_height, path, currentBitmap);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Override
+    public void savePicture(Location location, double height, String img_path, Bitmap bitmap) throws InterruptedException {
         hash_mutex.acquire();
         PictureObject to_save = new PictureObject(
                 user_data.getUser_id(),
                 db_config.getLAST_PICTURE_ID(),
                 img_path,
-                location, height);
+                location,
+                height,
+                bitmap);
         picture_hash.addPicture(to_save);
         db_config.addToDBCount();
         db_config.increment_LAST_PICTURE_ID();
@@ -193,8 +208,8 @@ public class ProjectModel implements Model{
     }
 
     @Override
-    public void setCurrentUserBitmap(Bitmap bitmap) {
-        user_data.setCurrentBitmap(bitmap);
+    public void setCurrentUserBitmap(String path, Bitmap bitmap) {
+        user_data.setCurrentBitmap(path, bitmap);
     }
 
     @Override
@@ -208,18 +223,29 @@ public class ProjectModel implements Model{
     }
 
     @Override
+    public void deleteDataBase() {
+        try {
+            hash_mutex.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        picture_hash = new HashPictureBox();
+        Bitmap not_found_img = image_cache.getCachedImage(ImageCache.NOT_FOUND_IMAGE);
+        image_cache = new ImageCache(not_found_img);
+        db_config.restart_DB_SIZE();
+        db_config.restart_LAST_PICTURE_ID();
+        hash_mutex.release();
+    }
+
+
+    @Override
     public Location getUserCurrentLocation() {
         return user_data.getUser_location();
     }
 
     @Override
-    public float[] getUserRotation() {
-        return user_data.get_Rotation();
-    }
-
-    @Override
-    public float[] getUserAcceleration() {
-        return user_data.get_Acceleration();
+    public Quaternion getUserRotation() {
+        return user_data.getRotation();
     }
 
     @Override
@@ -228,12 +254,13 @@ public class ProjectModel implements Model{
     }
 
     @Override
-    public void setUserAcceleration(float[] new_acceleration) {
-        user_data.setUser_acceleration(new_acceleration);
+    public void setUserRotation(Quaternion newRotation) {
+        user_data.setRotation(newRotation);
     }
 
     @Override
-    public void setUserRotation(float[] new_rotation) {
-        user_data.setUser_rotation(new_rotation);
+    public Bitmap getCurrentBitmap(){
+        return user_data.getCurrentBitmap();
     }
+
 }

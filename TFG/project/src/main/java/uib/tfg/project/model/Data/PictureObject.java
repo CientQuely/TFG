@@ -15,12 +15,13 @@ public class PictureObject implements Serializable{
     //In meters
     private double height;
 
-    public PictureObject(float user_id, float picture_id, String img_path, Location img_location, double height){
+    public PictureObject(float user_id, float picture_id, String img_path, Location img_location, double height, Bitmap bitmap){
             this.image_path = img_path;
             this.location = img_location;
             this.height = height;
             this.user_id = user_id;
             this.picture_id = user_id;
+            this.bitmap = bitmap;
     }
 
     public void loadImageBitmap(){

@@ -45,8 +45,12 @@ public class DB_Config implements Serializable {
         return DB_SIZE;
     }
 
-    public void setDB_SIZE(float DB_SIZE) {
-        this.DB_SIZE = DB_SIZE;
+    public void restart_DB_SIZE() {
+        this.DB_SIZE = 0;
+    }
+
+    public void restart_LAST_PICTURE_ID() {
+        this.LAST_PICTURE_ID = 0;
     }
 
     public float getUSERS_NUMBER() {

@@ -1,19 +1,19 @@
 package uib.tfg.project.view;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.GestureDetector;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -22,6 +22,7 @@ import android.util.Log;
 
 import uib.tfg.project.ProjectView;
 import uib.tfg.project.R;
+import uib.tfg.project.model.Data.PictureObject;
 import uib.tfg.project.presenter.Presenter;
 import uib.tfg.project.presenter.ProjectPresenter;
 
@@ -34,7 +35,7 @@ public class AugmentedReality extends Activity implements View{
     private SlidingMenu slidingMenu;
     private final Semaphore mutex = new Semaphore(0);
     private static final String TAG = "View/AugmentedReality";
-
+    private GestureDetector gestureDetector;
 
     public AugmentedReality(){
         super();
@@ -64,6 +65,14 @@ public class AugmentedReality extends Activity implements View{
         //Crea la vista de la camara
         cameraStream = new CameraView(this, this.findViewById(R.id.camera_view), "View/Camera/CameraView");
 
+        findViewById(R.id.virtual_view).setOnTouchListener(new DoubleTouchListener() {
+
+            @Override
+            public void onDoubleTouch(float x, float y) {
+                onDoubleTouchScreen(x, y);
+            }
+
+        });
     }
 
     @Override
@@ -125,19 +134,19 @@ public class AugmentedReality extends Activity implements View{
         if(Permits.hasAllPermits(this)){
             Toast.makeText(this, "Todos los permisos obtenidos !!",
                     Toast.LENGTH_LONG).show();
-
-            //si es la primera vez que llamamos a la camara y aun no teniamos permisos
-            if(!cameraStream.cameraAvailable()){
-                cameraStream.start();
-            }
-
         }else{
             Toast.makeText(this, "Esta app no puede funcionar si no se aceptan" +
                             "todos los permisos.",
                     Toast.LENGTH_LONG).show();
             goToMenu();
         }
-        return;
+
+        if(Permits.CAMERA_PERMIT){
+            //si es la primera vez que llamamos a la camara y aun no teniamos permisos
+            if(!cameraStream.cameraAvailable()){
+                cameraStream.start();
+            }
+        }
     }
 
     private void goToMenu() {
@@ -170,7 +179,7 @@ public class AugmentedReality extends Activity implements View{
 
     protected void onPause() {
         super.onPause();
-        if(virtualStream.isRunning()){
+        if(virtualStream != null && virtualStream.isRunning()){
             virtualStream.stopVirtualReality();
         }
         cameraStream.stopCameraStream();
@@ -185,12 +194,13 @@ public class AugmentedReality extends Activity implements View{
     {
         if (requestCode == SlidingMenu.PICK_IMAGE && data != null && resultCode != 0) {
                 Uri selectedImage = data.getData();
+                String path = getRealPathFromURI(this,selectedImage);
             Bitmap bitmap;
             try {
                 bitmap = MediaStore.Images.
                         Media.getBitmap(this.getContentResolver(), selectedImage);
                 if( bitmap != null){
-                    presenter.setUserCurrentBitmap(bitmap);
+                    presenter.setUserCurrentBitmap(path, bitmap);
                     slidingMenu.showMenuMessage("Image loaded correctly");
                 }else{
                     slidingMenu.showMenuMessage("Image could not be loaded");
@@ -201,4 +211,47 @@ public class AugmentedReality extends Activity implements View{
 
         }
     }
+
+    public static String getRealPathFromURI(Context context, Uri uri){
+        String filePath = "";
+        String wholeID = DocumentsContract.getDocumentId(uri);
+        String id = wholeID.split(":")[1];
+
+        String[] column = { MediaStore.Images.Media.DATA };
+        String sel = MediaStore.Images.Media._ID + "=?";
+
+        Cursor cursor = context.getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                column, sel, new String[]{ id }, null);
+
+        int columnIndex = cursor.getColumnIndex(column[0]);
+
+        if (cursor.moveToFirst()) {
+            filePath = cursor.getString(columnIndex);
+        }
+        cursor.close();
+        return filePath;
+    }
+
+    private void onDoubleTouchScreen(float x, float y) {
+        PictureObject pointed_picture = virtualStream.findPointedPicture();
+        if(pointed_picture == null){
+            try {
+                presenter.deletePicture(pointed_picture);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return;
+        }
+        if(presenter.getCurrentBitmap() == null){
+            Toast.makeText(this, "Image not selected, please select an image.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Location new_location = virtualStream.findPointedLocation();
+        float new_height = virtualStream.obtainPictureHeight();
+        presenter.createPicture(new_location, new_height);
+
+    }
+
 }

@@ -50,8 +50,12 @@ public class SlidingMenu implements NavigationView.OnNavigationItemSelectedListe
         int width = size.x;
         menu_toast = Toast.makeText(appContext, "", Toast.LENGTH_SHORT);
         menu_toast.setGravity(Gravity.CENTER_HORIZONTAL|Gravity.CENTER_VERTICAL,width/4+20, 0);
-
         changeScrollDetectorSize(SLIDE_MULTIPLIER);
+
+        double truncate_height = Math.floor(presenter.getUserHeight() * 100) / 100;
+        MenuItem mi = menuView.getMenu().findItem(R.id.nav_actual_height);
+        menuView.getMenu().findItem(R.id.nav_actual_height)
+                .setTitle("     Actual: "+truncate_height+" meters");
     }
 
     private void changeScrollDetectorSize(int multiplier) throws NoSuchFieldException, IllegalAccessException{
@@ -102,9 +106,47 @@ public class SlidingMenu implements NavigationView.OnNavigationItemSelectedListe
                 presenter.initiateLocationService();
             }
         } else if (id == R.id.nav_debug_database) {
+            create_database_alert_dialog();
         } else {
         }
         return true;
+    }
+
+    private void create_database_alert_dialog() {
+        final AlertDialog.Builder dialog_builder = new AlertDialog.Builder(main_activity);
+        dialog_builder.setTitle("Are you sure you want to delete the database?");
+        dialog_builder.setIcon(R.drawable.ic_menu_height);
+
+        dialog_builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                try{
+                    presenter.deleteDataBase();
+                    Toast.makeText(main_activity,
+                            "Database deleted correctly",
+                            Toast.LENGTH_LONG).show();
+                }catch(Exception e){
+                    Toast.makeText(main_activity,
+                            "Error was produced when removing your database",
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+        dialog_builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        final AlertDialog dialog = dialog_builder.create();
+        dialog.setOnShowListener( new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface arg0) {
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.GRAY);
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
+            }
+        });
+        dialog.show();
     }
 
     private void create_input_height_dialog() {
@@ -127,6 +169,9 @@ public class SlidingMenu implements NavigationView.OnNavigationItemSelectedListe
                     double height = Double.parseDouble(input.getText().toString());
                     if(height >= 0){
                         presenter.setUserHeight(height);
+                        double truncate_height = Math.floor(height * 100) / 100;
+                        menuView.getMenu().findItem(R.id.nav_actual_height)
+                                .setTitle("     Actual: "+truncate_height+" meters");
                     }else{
                         Toast.makeText(main_activity,
                                 "Insert a positive height",Toast.LENGTH_LONG).show();
