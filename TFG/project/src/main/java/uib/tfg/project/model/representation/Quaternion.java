@@ -109,12 +109,6 @@ public class Quaternion extends Vector4f {
         }
     }
 
-    /**
-     * Multiply this quaternion by the input quaternion and store the result in the out quaternion
-     * 
-     * @param input
-     * @param output
-     */
     public void multiplyByQuat(Quaternion input) {
         this.dirty = true;
         if(tmpQuaternion == null) tmpQuaternion = new Quaternion();
@@ -519,6 +513,47 @@ public class Quaternion extends Vector4f {
 
             //}
         }
+    }
+
+    public double[] calculateRollPitchYawAngles(double [] angle){
+        float x = getX();
+        float y = getY();
+        float z = getZ();
+        float w = getW();
+        angle[0] = Math.atan2(2*y*w + 2*x*z, 1 - 2*y*y - 2*z*z);
+        angle[1] = Math.atan2(2*x*w + 2*y*z, 1 - 2*x*x - 2*z*z);
+        angle[2] = Math.asin(2*x*y + 2*z*w);
+        return angle;
+    }
+
+    public Quaternion multiply(Quaternion a, Quaternion b){
+        Quaternion result = new Quaternion();
+        float x1 = a.points[0];
+        float y1 = a.points[1];
+        float z1 = a.points[2];
+        float w1 = a.points[3];
+        float x2 = b.points[0];
+        float y2 = b.points[1];
+        float z2 = b.points[2];
+        float w2 = b.points[3];
+
+        result.points[3] = w2*w1 - x2*x1 - y2*y1 -z2*z1;
+
+        result.points[0] = w2*x1 + x2*w1 - y2*z1 + z2*y1;
+
+        result.points[1] = w2*y1 + x2*z1 + y2*w1 - z2*x1;
+
+        result.points[2] = w2*z1 - x2*y1 + y2*x1 + z2*w1;
+
+        return result;
+    }
+    public Quaternion rotateQuaternionVector(Quaternion base_vector){
+        Quaternion negated = new Quaternion();
+        negated.setXYZW(-this.points[0],-this.points[1],-this.points[2], this.points[3]);
+        Quaternion result = multiply(multiply(this, base_vector), negated);
+        return result;
+       // this.multiplyByQuat(base_vector, result);
+        //result.multiplyByQuat(negated, result);
     }
 
 }

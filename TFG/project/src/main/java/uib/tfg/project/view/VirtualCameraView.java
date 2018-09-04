@@ -35,9 +35,9 @@ public class VirtualCameraView extends Thread {
     private Quaternion currentRotation;
     private Location currentLocation;
     private double currentHeight;
-    private Vector4f forwardVector;
-
     private Object lock = new Object();
+    Quaternion direction_base_vector;
+    Quaternion direction_vector;
 
     public VirtualCameraView(Context cont, View v, View debugger, Presenter p, String TAG){
         appContext = cont;
@@ -48,17 +48,18 @@ public class VirtualCameraView extends Thread {
         }
         this.TAG = TAG;
         this.presenter = p;
-        forwardVector = new Vector4f();
         sensors = new DecimalFormat("#.##");
         location = new DecimalFormat("##.########");
+        direction_base_vector = new Quaternion();
+        direction_base_vector.setXYZW(0,0 ,1,0);
+        direction_vector = new Quaternion();
     }
 
-    public void updateForwardVector(){
-        synchronized (lock){
-            currentRotation.normalise();
-            currentRotation.toAxisAngle(forwardVector);
-        }
+    public void updateDirectionVector(){
+        currentRotation.normalise();
+            direction_vector = currentRotation.rotateQuaternionVector(direction_base_vector);
     }
+
 
     @Override
     public void run(){
@@ -73,10 +74,10 @@ public class VirtualCameraView extends Thread {
     public void startVirtualReality(){
         while(!finish){
             synchronized (lock){
-                Location actual = presenter.getUserLocation();
+                currentLocation = presenter.getUserLocation();
                 currentRotation = presenter.getUserRotation();
                 currentHeight = presenter.getUserHeight();
-                updateForwardVector();
+                updateDirectionVector();
             }
             try{
                 if(logs_enabled) print_debug_logs();
@@ -99,9 +100,16 @@ public class VirtualCameraView extends Thread {
             text = "Lat: "+  location.format(currentLocation.getLatitude())
                     + ", Long: " + location.format(currentLocation.getLongitude())+"\n";
         }
-        text += "X: "+sensors.format(forwardVector.getX())+
-                ", Y:"+sensors.format(forwardVector.getY())+
-                ", Z:"+sensors.format(forwardVector.getZ());
+        text += "Parsed Direction:";
+        text += "X: "+sensors.format(direction_vector.getX())+
+                ", Y:"+sensors.format(direction_vector.getY())+
+                ", Z:"+sensors.format(direction_vector.getZ())+
+                ", W:"+sensors.format(direction_vector.getW())+"\n";
+        text += "Quaternion:";
+        text += "X: "+sensors.format(currentRotation.getX())+
+                ", Y:"+sensors.format(currentRotation.getY())+
+                ", Z:"+sensors.format(currentRotation.getZ())+
+                ", W:"+sensors.format(currentRotation.getW())+"\n";
 
         debuggerText.setText(text);
     }
