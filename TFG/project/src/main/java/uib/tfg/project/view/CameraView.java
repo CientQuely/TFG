@@ -14,6 +14,7 @@ import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.util.Size;
+import android.util.SizeF;
 import android.view.Surface;
 import android.util.Log;
 import android.view.TextureView;
@@ -25,9 +26,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-
-
-import uib.tfg.project.view.Permits;
 
 import static android.content.Context.CAMERA_SERVICE;
 
@@ -49,6 +47,9 @@ public class CameraView extends Thread{
     //Clase encargada de obtener y capturar las imágenes de la cámara
     private CameraCaptureSession camCaptureSession;
     //Contructor que se inicializa al empezar a capturar la sessión
+
+    public static  float cameraVerticalAngle = 52.1f;
+    public static  float cameraHorizontalAngle = 66.2f;
     private TextureView.SurfaceTextureListener camSurfaceTextureListener =
             new TextureView.SurfaceTextureListener() {
 
@@ -205,6 +206,8 @@ public class CameraView extends Thread{
                 if (cameraPosition != null
                         && cameraPosition.equals(CameraCharacteristics.LENS_FACING_BACK)) {
                     camCharacts = cameraCharacts;
+                    getCameraAngle(camCharacts);
+
                     //Devolvemos la Id de la cámara trasera
                     return cameraId;
                 }
@@ -216,6 +219,19 @@ public class CameraView extends Thread{
         }
         return null;
     }
+
+    private void  getCameraAngle(CameraCharacteristics info) {
+
+        SizeF sensorSize = info.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
+        float[] focalLengths = info.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+
+
+        if (focalLengths != null && focalLengths.length > 0) {
+            cameraHorizontalAngle = (float) (2 * Math.atan(sensorSize.getWidth() / (2 * focalLengths[0])) * 180 / Math.PI);
+            cameraVerticalAngle = (float) (2 * Math.atan(sensorSize.getHeight() / (2 * focalLengths[0])) * 180 / Math.PI);
+        }
+    }
+
 
     /**
      * Obtiene el tamaño correcto de la cámara

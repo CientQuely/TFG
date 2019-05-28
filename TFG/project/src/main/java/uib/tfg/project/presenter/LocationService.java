@@ -27,6 +27,11 @@ public class LocationService{
     private boolean GPS_ENABLED = false;
     private volatile LocationManager locationManager;
     private volatile boolean finish = false;
+
+    private static double toRadiants = Math.PI / 180;
+    private static double earthRadius = 6378137;
+    private static double degreePerMeter = (1 / ((2 * Math.PI / 360) * earthRadius));
+
     Object lock = new Object();
     private volatile LocationListener locationListener = new LocationListener() {
 
@@ -161,4 +166,19 @@ public class LocationService{
         }
 
     }
+
+    public static Location metersToLocation(double latitude, double longitude){
+        Location l = new Location("");
+        l.setLatitude(latitude * degreePerMeter);
+        l.setLongitude(longitude * degreePerMeter / Math.cos(latitude * degreePerMeter * toRadiants));
+        return l;
+    }
+
+    public static double [] locationToMeters(Location location){
+        double [] latAndLong = new double [2];
+        latAndLong[0] = location.getLatitude() / degreePerMeter;
+        latAndLong[1] = location.getLongitude() / degreePerMeter*Math.cos(location.getLatitude() * toRadiants);
+        return latAndLong;
+    }
+
 }

@@ -14,15 +14,16 @@ public class UserData extends Observable {
     private volatile Quaternion user_rotation;
     private volatile Bitmap currentBitmap;
     private volatile String bitmapPath;
-    public final int X_AXIS = 0;
-    public final int Y_AXIS = 1;
-    public final int Z_AXIS = 2;
     private double user_height;
+    private double imageCreationDistance = 2;
     public UserData(float user_id){
         currentBitmap = null;
         this.user_id = user_id;
         this.user_rotation = new Quaternion();
     }
+    private long lastUpdateTime = 0;
+    private long deltaWaitingTime = 3000; // 3 seconds
+
     public float getUser_id() {
         return user_id;
     }
@@ -35,13 +36,29 @@ public class UserData extends Observable {
         return user_location;
     }
 
+
     public void setUser_location(Location user_location) {
         if( this.user_location != null
                 && HashPictureBox.pictureUserBoxChanged(
-                        this.user_location, user_location)){
-            notifyObservers();
+                        this.user_location, user_location)
+                && deltaWaitingTimeFinished()){
+            notifyPictureLoader();
         }
         this.user_location = user_location;
+    }
+
+    public boolean deltaWaitingTimeFinished(){
+        long currentTime = System.currentTimeMillis();
+
+        if (currentTime > deltaWaitingTime + lastUpdateTime) {
+            lastUpdateTime = currentTime;
+            return true;
+        }
+        return false;
+    }
+
+    public void notifyPictureLoader(){
+        notifyObservers();
     }
 
     public void setRotation(Quaternion newRotation){
@@ -50,6 +67,13 @@ public class UserData extends Observable {
         }
     }
 
+    public double getImageCreationDistance(){
+        return imageCreationDistance;
+    }
+
+    public void setImageCreationDistance(double newDistance){
+        imageCreationDistance = newDistance;
+    }
     public Quaternion getRotation(){
         return user_rotation;
     }

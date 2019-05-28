@@ -5,7 +5,6 @@ import android.location.Location;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 
 public class HashPictureBox {
 
@@ -60,7 +59,7 @@ public class HashPictureBox {
     }
 
     private String getHashKey(PictureBox pb){
-        return "pictureHashKey-"+pb.getX_Coordinate()+"-"+pb.getY_Coordinate();
+        return "pictureHashKey-"+(int)pb.getX_Coordinate()+"-"+(int)pb.getY_Coordinate();
     }
 
     public void initiateIterator () {
@@ -85,5 +84,9 @@ public class HashPictureBox {
         Point new_box = getPictureBoxPosition(new_user_location);
 
         return !old_box.equals(new_box);
+    }
+
+    public void clean(){
+        box_hash.clear();
     }
 }

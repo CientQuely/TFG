@@ -1,10 +1,10 @@
 package uib.tfg.project.model;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.location.Location;
 
+import java.util.ArrayList;
 import java.util.Observer;
 
 import uib.tfg.project.model.Data.PictureObject;
@@ -15,29 +15,50 @@ import uib.tfg.project.model.representation.Quaternion;
  */
 
 public interface Model {
-    double INITIAL_RANGE_OF_VIEW = 50.0;
-    Location getUserCurrentLocation();
-
 
     //SENSORS
     Quaternion getUserRotation();
+
+    void cleanPictureHash() throws InterruptedException;
+
+    void cleanPictureList();
+
+    Location getUserCurrentLocation();
     void setUserRotation(Quaternion newRotation);
     void setUserCurrentLocation(Location location);
-
-    //USER
+    void setImageCreationDistance(double newDistance);
     double getUserHeight();
     void setUserHeight(double height);
     void setCurrentUserBitmap(String path, Bitmap bitmap);
     Bitmap getCurrentBitmap();
 
-    //DATA STORAGE
-    void loadDataBase() throws ModelException.DB_Config_Exception, ModelException.DB_File_Exception;
-    void closeDataBase() throws ModelException.DB_Config_Exception, ModelException.DB_File_Exception;
-    void savePicture(Location location, double height, String img_path, Bitmap bitmap) throws InterruptedException;
+    //USER
+    double getImageCreationDistance();
+
+    //PICTURE OBJECT
+    Bitmap getImageBitmap(PictureObject po);
+    Location getImageLocation(PictureObject po);
+    double getHeight(PictureObject po);
+    double [] getRotation(PictureObject po);
+
+
+    //PICTURE LIST
+    ArrayList<PictureObject> getImageList();
+    //Can't only be used for one thread OpenGL
+    boolean isPictureListModified();
+    void setPictureListModified(boolean value);
+
+    //DB
+    void startDataBase();
+    void closeDataBase();
+    void cleanDataBase();
+    void loadDataBase() throws InterruptedException;
+
+    //DB / HASH
     void deletePicture(PictureObject po) throws InterruptedException;
-    void deleteDataBase();
-    void createPicture(Location new_location, float new_height);
+    void createPicture(Location picLocation, double height, double [] picRotation);
     Point loadNearBoxes();
+    void removeFarCacheImagesBitmap();
 
     //OBSERVER
     void setUserObserver(Observer o);

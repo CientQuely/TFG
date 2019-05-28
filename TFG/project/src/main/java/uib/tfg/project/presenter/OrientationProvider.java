@@ -117,4 +117,6 @@ public abstract class OrientationProvider implements SensorEventListener {
     public boolean isRunning(){
         return running;
     }
+
+
 }

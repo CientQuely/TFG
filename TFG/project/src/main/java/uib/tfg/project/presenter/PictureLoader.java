@@ -42,11 +42,8 @@ public class PictureLoader extends Thread implements Observer {
             model.loadDataBase();
             Log.i(TAG,"DB Loaded Correctly");
             DB_LOADED = true;
-            Point box_loaded = model.loadNearBoxes();
-            Log.i(TAG,"User box ["
-                    + box_loaded.x + "," + box_loaded.y +"] bitmaps loaded correctly");
         } catch (ModelException.DB_Config_Exception e) {
-            Log.e(TAG,"DB Could not be created/loaded");
+            Log.e(TAG,"DB Could not be created");
             e.printStackTrace();
         } catch (ModelException.DB_File_Exception e) {
             Log.e(TAG,"DB Config file could not be created/loaded");
@@ -55,12 +52,15 @@ public class PictureLoader extends Thread implements Observer {
 
         while (!thread_interrupted){
             try {
+                Point box_loaded = model.loadNearBoxes();
+                model.removeFarCacheImagesBitmap();
+                Log.i(TAG,"User box ["
+                        + box_loaded.x + "," + box_loaded.y +"] bitmaps loaded correctly");
+                Thread.sleep(1000);
+
                 synchronized (lock){
                     lock.wait();
                 }
-                Point box_loaded = model.loadNearBoxes();
-                Log.i(TAG,"User box ["
-                        + box_loaded.x + "," + box_loaded.y +"] bitmaps loaded correctly");
             } catch (InterruptedException e) {
                 e.getStackTrace();
             }

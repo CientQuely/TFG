@@ -12,7 +12,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.view.GestureDetector;
 import android.widget.Toast;
 
@@ -32,6 +35,7 @@ public class AugmentedReality extends Activity implements View{
     private Presenter presenter;
     private CameraView cameraStream;
     private VirtualCameraView virtualStream;
+    private LoggerText loggerStream;
     private SlidingMenu slidingMenu;
     private final Semaphore mutex = new Semaphore(0);
     private static final String TAG = "View/AugmentedReality";
@@ -56,22 +60,49 @@ public class AugmentedReality extends Activity implements View{
         setContentView(R.layout.activity_augmented_reality);
 
         try {
-            slidingMenu = new SlidingMenu(this, this.findViewById(R.id.nav_view), presenter);
+            slidingMenu = new SlidingMenu(this, findViewById(R.id.nav_view), presenter);
+
+            findViewById(R.id.virtual_view).setOnTouchListener(new DoubleTouchListener() {
+
+                @Override
+                public void onDoubleTouch(float x, float y) {
+                    onDoubleTouchScreen(x, y);
+                }
+
+            });
+
         } catch (NoSuchFieldException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         }
+
         //Crea la vista de la camara
         cameraStream = new CameraView(this, this.findViewById(R.id.camera_view), "View/Camera/CameraView");
 
-        findViewById(R.id.virtual_view).setOnTouchListener(new DoubleTouchListener() {
+        loggerStream = new LoggerText(this, presenter, this.findViewById(R.id.debbugerText));
 
+        DrawerLayout mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mDrawerLayout.setDrawerListener(new DrawerLayout.DrawerListener() {
             @Override
-            public void onDoubleTouch(float x, float y) {
-                onDoubleTouchScreen(x, y);
+            public void onDrawerSlide(@NonNull android.view.View drawerView, float slideOffset) {
+
             }
 
+            @Override
+            public void onDrawerOpened(@NonNull android.view.View drawerView) {
+                virtualStream.hideVirtualCameraView();
+            }
+
+            @Override
+            public void onDrawerClosed(@NonNull android.view.View drawerView) {
+                virtualStream.unhideVirtualCameraView();
+            }
+
+            @Override
+            public void onDrawerStateChanged(int newState) {
+
+            }
         });
     }
 
@@ -158,6 +189,8 @@ public class AugmentedReality extends Activity implements View{
     public void onResume(){
         super.onResume();
         presenter.setContext(this);
+        presenter.startDataBase();
+
         if(!cameraStream.isAvailable()){
            cameraStream.start();
         }
@@ -171,22 +204,29 @@ public class AugmentedReality extends Activity implements View{
             presenter.initiatePictureLoader();
         }
         if(Permits.hasAllPermits(this)){
-            virtualStream = new VirtualCameraView(this, this.findViewById(R.id.virtual_view),
-                    this.findViewById(R.id.debbugerText),presenter, "View/VirtualCameraView");
-            virtualStream.start();
+            if (virtualStream == null){
+                virtualStream = new VirtualCameraView(this, this.findViewById(R.id.virtual_view)
+                        ,presenter, "View/VirtualCameraView");
+            }else{
+                virtualStream.onResume();
+            }
+
+            loggerStream = new LoggerText(this, presenter, this.findViewById(R.id.debbugerText));
+            loggerStream.start();
         }
     }
 
     protected void onPause() {
         super.onPause();
-        if(virtualStream != null && virtualStream.isRunning()){
-            virtualStream.stopVirtualReality();
-        }
         cameraStream.stopCameraStream();
         presenter.stopLocationService();
         presenter.stopSensorsService();
         presenter.stopPictureLoader();
-        //presenter.storeDataBase();
+        virtualStream.onPause();
+        if(loggerStream.isRunning()){
+            loggerStream.stopLoggerText();
+        }
+        presenter.stopDataBase();
     }
 
     @Override
@@ -232,9 +272,10 @@ public class AugmentedReality extends Activity implements View{
         return filePath;
     }
 
-    private void onDoubleTouchScreen(float x, float y) {
+    public void onDoubleTouchScreen(float x, float y) {
         PictureObject pointed_picture = virtualStream.findPointedPicture();
-        if(pointed_picture == null){
+        /*
+        if(pointed_picture != null){
             try {
                 presenter.deletePicture(pointed_picture);
             } catch (InterruptedException e) {
@@ -242,16 +283,22 @@ public class AugmentedReality extends Activity implements View{
             }
             return;
         }
+        */
         if(presenter.getCurrentBitmap() == null){
             Toast.makeText(this, "Image not selected, please select an image.",
                     Toast.LENGTH_LONG).show();
-            return;
+        }else{
+            createImage();
+            Toast.makeText(this, "Image created!",
+                    Toast.LENGTH_SHORT).show();
         }
-
-        Location new_location = virtualStream.findPointedLocation();
-        float new_height = virtualStream.obtainPictureHeight();
-        presenter.createPicture(new_location, new_height);
-
     }
 
+    public void createImage(){
+        double distance = presenter.getImageCreationDistance();
+        double [] imageLocation = virtualStream.getPointedLocation(distance);
+        double [] imageRotation = virtualStream.getImageRotation();
+        presenter.createPicture(imageLocation, imageRotation);
+    }
 }
+

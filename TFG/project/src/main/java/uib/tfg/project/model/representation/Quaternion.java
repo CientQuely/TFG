@@ -233,20 +233,38 @@ public class Quaternion extends Vector4f {
         output.points[3] = angle;
     }
 
+
     /**
-     * Returns the heading, attitude and bank of this quaternion as euler angles in the double array respectively
-     * 
+     * Returns respectively, the pitch, yaw and roll of this quaternion as euler angles in the double array respectively
+     *
      * @return An array of size 3 containing the euler angles for this quaternion
-     */
-    public double[] toEulerAngles() {
+     * assumes is a normalised quaternion */
+    public double[] toEuler() {
         double[] ret = new double[3];
-
-        ret[0] = Math.atan2(2 * points[1] * getW() - 2 * points[0] * points[2], 1 - 2 * (points[1] * points[1]) - 2
-                * (points[2] * points[2])); // atan2(2*qy*qw-2*qx*qz , 1 - 2*qy2 - 2*qz2)
-        ret[1] = Math.asin(2 * points[0] * points[1] + 2 * points[2] * getW()); // asin(2*qx*qy + 2*qz*qw) 
-        ret[2] = Math.atan2(2 * points[0] * getW() - 2 * points[1] * points[2], 1 - 2 * (points[0] * points[0]) - 2
-                * (points[2] * points[2])); // atan2(2*qx*qw-2*qy*qz , 1 - 2*qx2 - 2*qz2)
-
+        normalise();
+        double w =  getW();
+        double x =  getX();
+        double y =  getY();
+        double z =  getZ();
+        double test = x*y + z*w;
+        if (test > 0.499) { // singularity at north pole
+            ret[0] = 2 * Math.atan2(x,w);
+            ret[1] = Math.PI/2;
+            ret[2] = 0;
+            return ret;
+        }
+        if (test < -0.499) { // singularity at south pole
+            ret[0] = -2 * Math.atan2(x,w);
+            ret[1] = - Math.PI/2;
+            ret[2] = 0;
+            return ret;
+        }
+        double sqx = x*x;
+        double sqy = y*y;
+        double sqz = z*z;
+        ret[0] = Math.atan2(2*y*w-2*x*z , 1 - 2*sqy - 2*sqz);
+        ret[1] = Math.asin(2*test);
+        ret[2] = Math.atan2(2*x*w-2*y*z , 1 - 2*sqx - 2*sqz);
         return ret;
     }
 

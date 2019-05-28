@@ -2,148 +2,137 @@ package uib.tfg.project.view;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.location.Location;
+import android.opengl.GLSurfaceView;
 import android.os.Looper;
-import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.view.View;
 
+import java.lang.Math;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 
 import uib.tfg.project.model.Data.PictureObject;
-import uib.tfg.project.model.representation.Matrix;
-import uib.tfg.project.model.representation.MatrixF4x4;
 import uib.tfg.project.model.representation.Quaternion;
-import uib.tfg.project.model.representation.Vector3f;
-import uib.tfg.project.model.representation.Vector4f;
 import uib.tfg.project.presenter.Presenter;
 
-public class VirtualCameraView extends Thread {
+public class VirtualCameraView {
     private Context appContext;
-    private ImageView virtualView;
-    private volatile boolean running = false;
-    private volatile boolean finish = false;
-    private static volatile int threadNumber = 0;
     private static volatile boolean logs_enabled = false;
-    private TextView debuggerText;
     private Presenter presenter;
-    private String TAG;
-    private static DecimalFormat sensors;
-    private static DecimalFormat location;
 
-    private Quaternion currentRotation;
-    private Location currentLocation;
-    private double currentHeight;
-    private Object lock = new Object();
-    Quaternion direction_base_vector;
-    Quaternion direction_vector;
 
-    public VirtualCameraView(Context cont, View v, View debugger, Presenter p, String TAG){
+    private GLSurfaceView virtualView;
+    private GLRenderer myGLRenderer;
+
+    public VirtualCameraView(Context cont, View v, Presenter p, String TAG){
         appContext = cont;
-        if(v != null) virtualView = (ImageView) v;
-        if(debugger != null){
-            debuggerText = (TextView) debugger;
-            debuggerText.setTextColor(Color.RED);
-        }
-        this.TAG = TAG;
         this.presenter = p;
-        sensors = new DecimalFormat("#.##");
-        location = new DecimalFormat("##.########");
-        direction_base_vector = new Quaternion();
-        direction_base_vector.setXYZW(0,0 ,1,0);
-        direction_vector = new Quaternion();
+        if(v != null) virtualView = (GLSurfaceView) v;
+
+        virtualView.setZOrderOnTop(true);
+        virtualView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        virtualView.getHolder().setFormat(PixelFormat.RGBA_8888);
+
+        virtualView.setEGLContextClientVersion(2);
+        myGLRenderer = new GLRenderer(presenter, this);
+        virtualView.setRenderer(myGLRenderer);
+        virtualView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
     }
 
-    public void updateDirectionVector(){
-        currentRotation.normalise();
-            direction_vector = currentRotation.rotateQuaternionVector(direction_base_vector);
-    }
-
-
-    @Override
-    public void run(){
-        running = true;
-        Looper.prepare();
-        this.setName("VirtualCameraView"+threadNumber);
-        threadNumber++;
-        startVirtualReality();
-    }
-
-
-    public void startVirtualReality(){
-        while(!finish){
-            synchronized (lock){
-                currentLocation = presenter.getUserLocation();
-                currentRotation = presenter.getUserRotation();
-                currentHeight = presenter.getUserHeight();
-                updateDirectionVector();
-            }
-            try{
-                if(logs_enabled) print_debug_logs();
-
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        running = false;
-    }
-
-    public void stopVirtualReality(){
-        finish = true;
-    }
-
-    private void print_debug_logs() {
-        String text = "";
-        if(currentLocation != null){
-            text = "Lat: "+  location.format(currentLocation.getLatitude())
-                    + ", Long: " + location.format(currentLocation.getLongitude())+"\n";
-        }
-        text += "Parsed Direction:";
-        text += "X: "+sensors.format(direction_vector.getX())+
-                ", Y:"+sensors.format(direction_vector.getY())+
-                ", Z:"+sensors.format(direction_vector.getZ())+
-                ", W:"+sensors.format(direction_vector.getW())+"\n";
-        text += "Quaternion:";
-        text += "X: "+sensors.format(currentRotation.getX())+
-                ", Y:"+sensors.format(currentRotation.getY())+
-                ", Z:"+sensors.format(currentRotation.getZ())+
-                ", W:"+sensors.format(currentRotation.getW())+"\n";
-
-        debuggerText.setText(text);
-    }
-
-    public boolean isRunning(){
-        return running;
-    }
-
-
-    public static void enableLogs(boolean state){
-        logs_enabled = state;
-    }
-
-    public static boolean debugLogsEnabled(){
-        return logs_enabled;
+    public static double toDegrees(double  angle){
+        return angle * ( 180.0 / Math.PI);
     }
 
     public PictureObject findPointedPicture() {
         return null;
     }
 
-    public Location findPointedLocation() {
-        Location pointed_location = new Location("");
-        pointed_location.setLatitude(-1);
-        pointed_location.setLongitude(-1);
+    public double [] getPointedLocation(double distanceInMeters) {
+        double [] userLocation = presenter.getUserLocationInMeters();
+        double [] imageRelativeLocation = getImageRelativeLocation(distanceInMeters);
 
-
-        return pointed_location;
+        int i = 0;
+        double [] imageLocation = new double [userLocation.length];
+        while (i < userLocation.length){
+            imageLocation[i] = userLocation[i] + imageRelativeLocation[i];
+            i++;
+        }
+        return imageLocation;
     }
 
-    public float obtainPictureHeight() {
-
-        return -1;
+    public void hideVirtualCameraView(){
+        GLRenderer.setStopDrawing(true);
     }
 
+    public void unhideVirtualCameraView(){
 
+        GLRenderer.setStopDrawing(false);
+    }
+
+    public static double [] getImageRelativeLocation(Presenter p, double distanceInMeters) {
+        double [] eulerAngle = p.getUserRotation().toEuler();
+
+        double [] relativeLocation = new double [3];
+
+        double altitude = Math.abs(distanceInMeters * Math.cos(eulerAngle[0]));
+        if (eulerAngle[0] > (- Math.PI / 2) && eulerAngle[0] < (Math.PI / 2)) {
+            altitude = - altitude;
+        }
+        relativeLocation[2] = altitude;
+
+        double latAndLongDistance = Math.abs(distanceInMeters * Math.sin(eulerAngle[0]));
+
+        double latitude = latAndLongDistance * Math.cos(eulerAngle[1]);
+        if (eulerAngle[0] < 0) { latitude = -latitude; }
+        relativeLocation[0] = latitude;
+
+        double longitude = latAndLongDistance * Math.sin(eulerAngle[1]);
+        if (eulerAngle[0] > 0) { longitude = -longitude; }
+        relativeLocation[1] = longitude;
+
+        return relativeLocation;
+    }
+
+    public double [] getImageRelativeLocation(double distanceInMeters) {
+        double [] eulerAngle = presenter.getUserRotation().toEuler();
+
+        double [] relativeLocation = new double [3];
+
+        double altitude = Math.abs(distanceInMeters * Math.cos(eulerAngle[0]));
+        if (eulerAngle[0] > (- Math.PI / 2) && eulerAngle[0] < (Math.PI / 2)) {
+            altitude = - altitude;
+        }
+        relativeLocation[2] = altitude;
+
+        double latAndLongDistance = Math.abs(distanceInMeters * Math.sin(eulerAngle[0]));
+
+        double latitude = latAndLongDistance * Math.cos(eulerAngle[1]);
+        if (eulerAngle[0] < 0) { latitude = -latitude; }
+        relativeLocation[0] = latitude;
+
+        double longitude = latAndLongDistance * Math.sin(eulerAngle[1]);
+        if (eulerAngle[0] > 0) { longitude = -longitude; }
+        relativeLocation[1] = longitude;
+
+        return relativeLocation;
+    }
+
+    public double [] getImageRotation(){
+        double [] userRotation = presenter.getUserRotation().toEuler();
+
+        for (int i = 0; i < userRotation.length; i++){
+            userRotation[i] = - userRotation[i];
+        }
+        return userRotation;
+    }
+
+    public void onPause(){
+        virtualView.onPause();
+    }
+
+    public void onResume(){
+        virtualView.onResume();
+    }
 }

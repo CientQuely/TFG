@@ -1,38 +1,36 @@
 package uib.tfg.project.model.Data;
 
-import android.graphics.Bitmap;
 import android.location.Location;
 
-import java.io.Serializable;
-import java.util.Vector;
-
-public class PictureObject implements Serializable{
-    private float picture_id;
+public class PictureObject {
+    private long picture_id;
     private float user_id;
     private String image_path;
-    private Bitmap bitmap;
+    private double [] imageRotation;
     private Location location;
     //In meters
     private double height;
+    private static final String SEPARATOR = "%";
 
-    public PictureObject(float user_id, float picture_id, String img_path, Location img_location, double height, Bitmap bitmap){
+    public PictureObject(float user_id, String img_path, Location img_location,
+                         double height, double [] imageRotation){
             this.image_path = img_path;
             this.location = img_location;
             this.height = height;
             this.user_id = user_id;
-            this.picture_id = user_id;
-            this.bitmap = bitmap;
+            this.imageRotation = imageRotation;
     }
 
-    public void loadImageBitmap(){
-
+    // Radiants
+    public double [] getImageRotation(){
+        return imageRotation;
     }
 
-    public float getPicture_id() {
+    public long getPicture_id() {
         return picture_id;
     }
 
-    public void setPicture_id(int picture_id) {
+    public void setPicture_id(long picture_id) {
         this.picture_id = picture_id;
     }
 
@@ -48,13 +46,6 @@ public class PictureObject implements Serializable{
         this.image_path = image_path;
     }
 
-    public boolean IsImageLoaded(){
-        return bitmap != null;
-    }
-
-    public Bitmap getBitMap() {
-        return bitmap;
-    }
 
     public Location getLocation() {
         return location;
@@ -68,12 +59,27 @@ public class PictureObject implements Serializable{
         return user_id==this.user_id && picture_id==this.picture_id;
     }
 
-    public void setBitmap(Bitmap bitmap) {
-        this.bitmap = bitmap;
-    }
-
     @Override
     public String toString(){
-        return String.format("Picture ID: %2d, Location: %s",picture_id, location.toString());
+        return String.format("Picture ID: %2d, Location: %s .",picture_id, location.toString());
+    }
+
+    public String getLocationString() {
+        return  location.getLatitude()+SEPARATOR+location.getLongitude()+SEPARATOR+height;
+    }
+
+    public static double [] parseQueryString(String queryString) {
+        String [] values = queryString.split(SEPARATOR);
+
+        double [] doubleValues = new double [values.length];
+
+        for(int i = 0; i < values.length; i++){
+            doubleValues[i] = Double.parseDouble(values[i]);
+        }
+        return doubleValues;
+    }
+
+    public String getRotationString() {
+        return  String.valueOf(imageRotation[0])+SEPARATOR+imageRotation[1]+SEPARATOR+imageRotation[2];
     }
 }

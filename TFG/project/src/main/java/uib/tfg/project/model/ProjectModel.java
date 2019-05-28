@@ -1,22 +1,21 @@
 package uib.tfg.project.model;
 
+import android.content.Context;
+import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Picture;
 import android.graphics.Point;
 import android.location.Location;
 
-import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.Observer;
 import java.util.concurrent.Semaphore;
 
-import uib.tfg.project.model.Data.DB_Config;
 import uib.tfg.project.model.Data.HashPictureBox;
 import uib.tfg.project.model.Data.ImageCache;
 import uib.tfg.project.model.Data.PictureBox;
 import uib.tfg.project.model.Data.PictureObject;
 import uib.tfg.project.model.Data.UserData;
+import uib.tfg.project.model.PictureDatabase.PictureDB;
 import uib.tfg.project.model.representation.Quaternion;
 import uib.tfg.project.presenter.Presenter;
 
@@ -25,178 +24,199 @@ import uib.tfg.project.presenter.Presenter;
  */
 
 public class ProjectModel implements Model{
-    public static final String DB_NAME = "picture_database_one";
     private Presenter presenter;
     UserData user_data;
-    DB_Config db_config;
     private HashPictureBox picture_hash;
     private ImageCache image_cache;
-    protected Semaphore db_mutex = new Semaphore(1);
     protected Semaphore hash_mutex = new Semaphore(1);
+    PictureDB pictureDB;
+    private volatile boolean pictureListModified = false;
+    ArrayList<PictureObject> nearestPictures = new ArrayList<PictureObject>();
+    ArrayList<PictureObject> oldNearestPictures = new ArrayList<PictureObject>();
 
-    public ProjectModel(Presenter p, Bitmap not_found_img) throws ModelException.Bitmap_Not_Found_Exception {
+    public ProjectModel(Presenter p, Bitmap not_found_img, Context c) {
         this.presenter = p;
         picture_hash = new HashPictureBox();
         user_data = new UserData(1);
         image_cache = new ImageCache(not_found_img);
-    }
-    @Override
-    public void loadDataBase() throws ModelException.DB_Config_Exception, ModelException.DB_File_Exception {
-        try {
-            db_mutex.acquire();
-        } catch (InterruptedException e) {
-        }
-        try {
-            db_config = (DB_Config) FileIO.loadDB_Config(DB_NAME);
-        } catch (IOException e) {
-            throw new ModelException.DB_Config_Exception("DB Config not loaded");
-        }
-        if(db_config == null){
-            db_config = new DB_Config();
-        }
-
-        //En caso de no estar vacia carga el fichero de la
-        //base de datos en el hash
-        if(db_config.getDB_SIZE() == 0){
-            db_mutex.release();
-            return;
-        }
-
-        //Read database
-        try {
-            for(Object actual: new FileIO.DBFileIterator(DB_NAME,db_config.getDB_SIZE())){
-                picture_hash.addPicture((PictureObject)actual);
-            }
-        } catch (IOException e) {
-            throw new ModelException.DB_File_Exception("DB File not loaded");
-        }
-        db_mutex.release();
+        pictureDB = new PictureDB(c);
     }
 
 
     @Override
-    public void closeDataBase() throws ModelException.DB_Config_Exception, ModelException.DB_File_Exception {
-        //Store DB Configuration
-        try {
-            FileIO.storeDB_Config(DB_NAME,db_config);
-        } catch (IOException e) {
-            throw new ModelException.DB_Config_Exception("DB File not loaded");
-        }
-        //Store DB
-        FileIO.DBStoreSession db_output = null;
-        try {
-            db_output = new FileIO.DBStoreSession(DB_NAME);
-        } catch (IOException e) {
-            throw new ModelException.DB_File_Exception("DB File not loaded");
-        }
-        try {
-            db_mutex.acquire();
-            picture_hash.initiateIterator();
-            PictureBox current_box = picture_hash.getNextPictureBox();
-            while(current_box != null){
-                current_box.initiateIterator();
-                PictureObject actual = current_box.getNextPicture();
-                while(actual != null){
-                    db_output.storeDBObject(actual);
-                    actual = current_box.getNextPicture();
-                }
-                current_box = picture_hash.getNextPictureBox();
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }finally{
-            db_output.closeDBStoreSession();
-            db_mutex.release();
-        }
+    public void loadDataBase() throws InterruptedException{
+        Cursor pictureCursor = pictureDB.getAllPictures();
+        pictureCursor.moveToFirst();
+        do{
+            PictureObject po = PictureDB.toPictureObject(pictureCursor);
+            hash_mutex.acquire();
+            picture_hash.addPicture(po);
+            hash_mutex.release();
+        }while(pictureCursor.moveToNext());
     }
 
+    //Can't only be used for one thread OpenGL
+    @Override
+    public boolean isPictureListModified(){
+        return pictureListModified;
+    }
 
     @Override
-    public void createPicture(Location new_location, float new_height) {
+    public void setPictureListModified (boolean value){
+        pictureListModified = value;
+    }
+
+    @Override
+    public void closeDataBase() {
+        pictureDB.close();
+    }
+
+    @Override
+    public void startDataBase() {
+        pictureDB.initiateDB();
+    }
+
+    @Override
+    public void createPicture(Location picLocation, double height, double [] picRotation) {
         Bitmap currentBitmap = user_data.getCurrentBitmap();
         String path = user_data.getCurrentBitmapPath();
         try {
-            savePicture(new_location, new_height, path, currentBitmap);
-        } catch (InterruptedException e) {
+            savePicture(picLocation, height, path, currentBitmap, picRotation);
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
 
-    @Override
-    public void savePicture(Location location, double height, String img_path, Bitmap bitmap) throws InterruptedException {
+    public void savePicture(Location location, double height, String img_path,
+                            Bitmap bitmap, double [] picRotation) throws Exception {
         hash_mutex.acquire();
         PictureObject to_save = new PictureObject(
                 user_data.getUser_id(),
-                db_config.getLAST_PICTURE_ID(),
                 img_path,
                 location,
                 height,
-                bitmap);
+                picRotation);
+
+        //Store picture to DB
+        long picture_id = pictureDB.insertPicture(to_save);
+        if(picture_id == -1){
+            throw new Exception("DB INSERT FAILED");
+        }
+        to_save.setPicture_id(picture_id);
+
+        //Store picture to Hash
         picture_hash.addPicture(to_save);
-        db_config.addToDBCount();
-        db_config.increment_LAST_PICTURE_ID();
+
+        if(image_cache.getCachedImage(img_path) == null ){
+            image_cache.cacheImage(img_path, bitmap);
+        }
+
+        nearestPictures.add(to_save);
+        pictureListModified = true;
+
         hash_mutex.release();
     }
 
     @Override
     public void deletePicture(PictureObject po) throws InterruptedException {
         hash_mutex.acquire();
-        if (picture_hash.deletePicture(po)){
-            db_config.substractFromDBCount();
-        }
+        picture_hash.deletePicture(po);
+        pictureDB.deletePicture(po);
         hash_mutex.release();
     }
 
-
-    public void deleteUser(float user_id){
-        if (!db_config.removeUser(user_id)) return;
-
-        //picture_hash.deleteUserPictures();
+    @Override
+    public ArrayList<PictureObject> getImageList(){
+        return nearestPictures;
     }
-
 
     private Point getUserLocationBox(){
         Location user_location = getUserCurrentLocation();
         return HashPictureBox.getPictureBoxPosition(user_location);
     }
 
+    private ArrayList<PictureObject> appendPicturesFromBox(ArrayList<PictureObject> pictures, PictureBox box ){
+        box.initiateIterator();
+        PictureObject actual = box.getNextPicture();
+        while(actual != null){
+            pictures.add(actual);
+            actual = box.getNextPicture();
+        }
+        return pictures;
+    }
 
-    public void loadPicturesFromBox(PictureBox box){
+    private void loadPicturesFromBoxInCache(PictureBox box){
         box.initiateIterator();
         PictureObject actual = box.getNextPicture();
         while(actual != null){
             Bitmap actual_bitmap = image_cache.getCachedImage(actual.getImage_path());
             if( actual_bitmap == null){
                     actual_bitmap = FileIO.openImageBitmap(actual.getImage_path());
-                    if(actual_bitmap == null){
-                        actual_bitmap = image_cache.getCachedImage(ImageCache.NOT_FOUND_IMAGE);
+                    if(actual_bitmap != null){
+                        image_cache.cacheImage(actual.getImage_path(), actual_bitmap);
                     }
-                    image_cache.cacheImage(actual.getImage_path(), actual_bitmap);
             }
-            actual.setBitmap(actual_bitmap);
             actual = box.getNextPicture();
         }
     }
 
+    //Update pictures cache and create a new NearestPictures List
     @Override
     public Point loadNearBoxes(){
         Point user_box = getUserLocationBox();
+        ArrayList<PictureObject> newNearestPictures = new ArrayList<PictureObject>();
         int init_x_box = user_box.x - PictureBox.BOX_RANGE;
         int init_y_box = user_box.y - PictureBox.BOX_RANGE;
         int final_x_box = user_box.x + PictureBox.BOX_RANGE;
         int final_y_box = user_box.y + PictureBox.BOX_RANGE;
-        for (int x= init_x_box; x<final_x_box; x++){
-            for (int y= init_y_box; y<final_y_box; y++){
+
+        try {
+            hash_mutex.acquire();
+        } catch (InterruptedException e) {
+            hash_mutex.release();
+            e.printStackTrace();
+        }
+        for (int x= init_x_box; x <= final_x_box ; x++){
+            for (int y = init_y_box; y <= final_y_box ; y++){
                 PictureBox actual_box = picture_hash.getPictureBox(x, y);
                 if(actual_box != null){
-                    loadPicturesFromBox(actual_box);
+                    loadPicturesFromBoxInCache(actual_box);
+                    newNearestPictures = appendPicturesFromBox(newNearestPictures, actual_box);
                 }
             }
         }
+        oldNearestPictures = nearestPictures;
+        nearestPictures = newNearestPictures;
+        pictureListModified = true;
+        hash_mutex.release();
         return user_box;
     }
 
+    @Override
+    public void removeFarCacheImagesBitmap(){
+        oldNearestPictures.removeAll(nearestPictures);
+        Bitmap bitmap;
+        for (PictureObject currentPicture : oldNearestPictures) {
+            String imgPath = currentPicture.getImage_path();
+            bitmap = image_cache.getCachedImage(imgPath);
+            if (bitmap != null &&
+                ! imageBeingUsed(imgPath) &&
+                ! imgPath.equals(user_data.getCurrentBitmapPath())){
+                image_cache.deleteCachedImage(imgPath);
+                bitmap.recycle();
+            }
+        }
+    }
+
+    private boolean imageBeingUsed(String imgPath){
+        for (PictureObject currentPicture : nearestPictures) {
+            if (imgPath.equals(currentPicture.getImage_path())){
+                return true;
+            }
+        }
+        return false;
+    }
     @Override
     public void setUserObserver(Observer o) {
         user_data.setObserver(o);
@@ -223,20 +243,23 @@ public class ProjectModel implements Model{
     }
 
     @Override
-    public void deleteDataBase() {
-        try {
-            hash_mutex.acquire();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        picture_hash = new HashPictureBox();
-        Bitmap not_found_img = image_cache.getCachedImage(ImageCache.NOT_FOUND_IMAGE);
-        image_cache = new ImageCache(not_found_img);
-        db_config.restart_DB_SIZE();
-        db_config.restart_LAST_PICTURE_ID();
+    public void cleanDataBase() {
+        pictureDB.cleanDB();
+    }
+
+    @Override
+    public void cleanPictureHash() throws InterruptedException {
+        hash_mutex.acquire();
+        picture_hash.clean();
         hash_mutex.release();
     }
 
+    @Override
+    public void cleanPictureList() {
+        oldNearestPictures.clear();
+        nearestPictures.clear();
+        pictureListModified = true;
+    }
 
     @Override
     public Location getUserCurrentLocation() {
@@ -263,4 +286,39 @@ public class ProjectModel implements Model{
         return user_data.getCurrentBitmap();
     }
 
+    @Override
+    public double getImageCreationDistance(){
+        return user_data.getImageCreationDistance();
+    }
+
+    @Override
+    public Bitmap getImageBitmap(PictureObject po){
+        String imgPath = po.getImage_path();
+        Bitmap bitmap = image_cache.getCachedImage(imgPath);
+        if (bitmap == null){
+            bitmap = image_cache.getCachedImage(ImageCache.NOT_FOUND_IMAGE);
+        }
+        return bitmap;
+    }
+
+    @Override
+    public Location getImageLocation(PictureObject po){
+        return  po.getLocation();
+    }
+
+    @Override
+    public double getHeight(PictureObject po){
+        return  po.getHeight();
+    }
+
+    @Override
+    public double [] getRotation(PictureObject po){
+        return  po.getImageRotation();
+    }
+
+
+    @Override
+    public void setImageCreationDistance(double newDistance){
+        user_data.setImageCreationDistance(newDistance);
+    }
 }

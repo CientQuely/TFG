@@ -24,6 +24,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import java.lang.reflect.Field;
+import java.util.logging.Logger;
 
 import uib.tfg.project.R;
 import uib.tfg.project.presenter.Presenter;
@@ -56,6 +57,7 @@ public class SlidingMenu implements NavigationView.OnNavigationItemSelectedListe
         MenuItem mi = menuView.getMenu().findItem(R.id.nav_actual_height);
         menuView.getMenu().findItem(R.id.nav_actual_height)
                 .setTitle("     Actual: "+truncate_height+" meters");
+
     }
 
     private void changeScrollDetectorSize(int multiplier) throws NoSuchFieldException, IllegalAccessException{
@@ -84,14 +86,14 @@ public class SlidingMenu implements NavigationView.OnNavigationItemSelectedListe
         }else if(id == R.id.nav_user_height){
             create_input_height_dialog();
         }else if (id == R.id.nav_debug_logs) {
-            if(VirtualCameraView.debugLogsEnabled()){
+            if(LoggerText.debugLogsEnabled()){
                 item.setTitle("Logs Disabled");
                 item.setChecked(false);
-                VirtualCameraView.enableLogs(false);
+                LoggerText.enableLogs(false);
             }else{
                 item.setTitle("Logs Enabled");
                 item.setChecked(true);
-                VirtualCameraView.enableLogs(true);
+                LoggerText.enableLogs(true);
             }
         } else if (id == R.id.nav_debug_gps) {
             if(presenter.isLocationServiceEnabled()){
