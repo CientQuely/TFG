@@ -8,6 +8,37 @@
             android:icon="@drawable/ic_menu_gallery"
             android:title="@string/select_image" />
 
+    <item android:title="Interaction Mode">
+        <menu>
+            <item
+                android:id="@+id/nav_mode"
+                android:icon="@drawable/ic_menu_add_mode"
+                android:title="ADD" />
+            <item
+                android:id="@+id/nav_model_distance"
+                android:icon="@drawable/ic_menu_distance_add"
+                android:title="Set Creation Distance" />
+            <item
+                android:title=""
+                android:id="@+id/nav_actual_distance"
+                android:checkable="false"
+                />
+            <item
+                android:id="@+id/nav_pixel_ratio"
+                android:icon="@drawable/ic_menu_pixel_ratio"
+                android:title="Set PixelRatio" />
+            <item
+                android:title=""
+                android:id="@+id/nav_actual_pixel_ratio"
+                android:checkable="false"
+                />
+            <item
+                android:id="@+id/nav_virtual_rotation"
+                android:icon="@drawable/ic_screen_rotation_closed"
+                android:title="Rotation Disabled" />
+        </menu>
+    </item>
+
     <item android:title="User">
         <menu>
             <item
@@ -32,6 +63,12 @@
                 android:icon="@drawable/ic_menu_gps_enabled"
                 android:checked="true"
                 android:title="@string/gps_enabled" />
+
+            <item
+                android:id="@+id/nav_gps_type"
+                android:checked="false"
+                android:title="GPS Mode: LAST" />
+
             <item
                 android:id="@+id/nav_debug_database"
                 android:icon="@drawable/ic_menu_database"

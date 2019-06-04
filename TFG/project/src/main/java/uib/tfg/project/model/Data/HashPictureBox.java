@@ -9,9 +9,9 @@ import java.util.Iterator;
 public class HashPictureBox {
 
     //Tamaño de cada una de las cajas del hash
-    private static final double BOX_METERS = 30;
+    private static final double BOX_METERS = 40;
     //This location decimal is about 1,1 meters
-    private static final double METER_CORRELATION = 0.00001;
+    private static final double METER_CORRELATION = 0.0000111;
     private final int INITIAL_HASH_DT_SIZE = 500;
     HashMap<String,PictureBox> box_hash;
 

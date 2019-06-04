@@ -13,30 +13,21 @@ import uib.tfg.project.model.Data.PictureObject;
 public class PictureDB extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "Picture.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 5;
     public PictureDB(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
     private SQLiteDatabase db;
 
-    public void PictureDB(){
-        initiateDB();
-    }
-
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE "+ PictureEntry.TABLE_NAME + " ("
-                        + PictureEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-                        + PictureEntry.IMG_PATH + " TEXT NOT NULL,"
-                        + PictureEntry.IMG_LOCATION + " TEXT NOT NULL,"
-                        + PictureEntry.IMG_PATH + "TEXT NOT NULL,"
-                        + PictureEntry.IMG_ROTATION + "TEXT NOT NULL,"
-                        + PictureEntry.USER_ID + "FLOAT)");
+        db.execSQL(PictureEntry.TABLE_CREATION_QUERY);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
+        db.execSQL("DROP TABLE IF EXISTS "+PictureEntry.TABLE_NAME);
+        onCreate(db);
     }
 
     public long insertPicture(PictureObject po){
@@ -65,6 +56,7 @@ public class PictureDB extends SQLiteOpenHelper {
         values.put(PictureEntry.IMG_PATH, po.getImage_path());
         values.put(PictureEntry.IMG_LOCATION, po.getLocationString());
         values.put(PictureEntry.IMG_ROTATION, po.getRotationString());
+        values.put(PictureEntry.IMG_PIXEL_RATIO, po.getPixel_ratio());
         return values;
     }
 
@@ -75,11 +67,11 @@ public class PictureDB extends SQLiteOpenHelper {
         double [] latLongHeight = PictureObject.parseQueryString(c.getString(c.getColumnIndex(PictureEntry.IMG_LOCATION)));
         Location location = new Location("");
         location.setLatitude(latLongHeight[0]);
-        location.setLatitude(latLongHeight[1]);
+        location.setLongitude(latLongHeight[1]);
         double height = latLongHeight[2];
-        double [] rotation = PictureObject.parseQueryString(c.getString(c.getColumnIndex(PictureEntry.IMG_ROTATION)));
-
-        PictureObject po = new PictureObject(user_id, img_path, location, height, rotation);
+        float [] rotation = PictureObject.parseQueryStringFloat(c.getString(c.getColumnIndex(PictureEntry.IMG_ROTATION)));
+        float pixel_ratio = c.getFloat(c.getColumnIndex(PictureEntry.IMG_PIXEL_RATIO));
+        PictureObject po = new PictureObject(user_id, img_path, location, height, rotation, pixel_ratio);
         po.setPicture_id(id);
 
         return po;

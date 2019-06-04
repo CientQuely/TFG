@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.location.Location;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Observer;
@@ -29,6 +30,7 @@ public class ProjectModel implements Model{
     private HashPictureBox picture_hash;
     private ImageCache image_cache;
     protected Semaphore hash_mutex = new Semaphore(1);
+    protected Semaphore nimg_mutex = new Semaphore(1);
     PictureDB pictureDB;
     private volatile boolean pictureListModified = false;
     ArrayList<PictureObject> nearestPictures = new ArrayList<PictureObject>();
@@ -46,6 +48,12 @@ public class ProjectModel implements Model{
     @Override
     public void loadDataBase() throws InterruptedException{
         Cursor pictureCursor = pictureDB.getAllPictures();
+
+        //Empty DB
+        if(pictureCursor.getCount() == 0){
+            return;
+        }
+
         pictureCursor.moveToFirst();
         do{
             PictureObject po = PictureDB.toPictureObject(pictureCursor);
@@ -68,7 +76,7 @@ public class ProjectModel implements Model{
 
     @Override
     public void closeDataBase() {
-        pictureDB.close();
+        pictureDB.closeDB();
     }
 
     @Override
@@ -77,58 +85,94 @@ public class ProjectModel implements Model{
     }
 
     @Override
-    public void createPicture(Location picLocation, double height, double [] picRotation) {
+    public void createPicture(Location picLocation, double height, float [] picRotation) {
         Bitmap currentBitmap = user_data.getCurrentBitmap();
         String path = user_data.getCurrentBitmapPath();
-        try {
-            savePicture(picLocation, height, path, currentBitmap, picRotation);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        savePicture(picLocation, height, path, currentBitmap, picRotation);
 
     }
 
     public void savePicture(Location location, double height, String img_path,
-                            Bitmap bitmap, double [] picRotation) throws Exception {
-        hash_mutex.acquire();
-        PictureObject to_save = new PictureObject(
-                user_data.getUser_id(),
-                img_path,
-                location,
-                height,
-                picRotation);
+                            Bitmap bitmap, float [] picRotation){
+        try{
+            PictureObject to_save = new PictureObject(
+                    user_data.getUser_id(),
+                    img_path,
+                    location,
+                    height,
+                    picRotation,
+                    user_data.getPixelPerCentimetreRatio());
 
-        //Store picture to DB
-        long picture_id = pictureDB.insertPicture(to_save);
-        if(picture_id == -1){
-            throw new Exception("DB INSERT FAILED");
+            //Store picture to DB
+            long picture_id = pictureDB.insertPicture(to_save);
+            if(picture_id == -1){
+                throw new Exception("DB INSERT FAILED");
+            }
+            to_save.setPicture_id(picture_id);
+
+            //Store picture to Hash
+            hash_mutex.acquire();
+            picture_hash.addPicture(to_save);
+            hash_mutex.release();
+
+            if(image_cache.getCachedImage(img_path) == null ){
+                image_cache.cacheImage(img_path, bitmap);
+            }
+
+            nimg_mutex.acquire();
+            nearestPictures.add(to_save);
+            nimg_mutex.release();
+
+            pictureListModified = true;
+        }catch(Exception e){
+            Log.e("Model", "exception", e);
+            if(hash_mutex.availablePermits() <= 0){
+                hash_mutex.release();
+            }
+            if(nimg_mutex.availablePermits() <= 0){
+                nimg_mutex.release();
+            }
         }
-        to_save.setPicture_id(picture_id);
-
-        //Store picture to Hash
-        picture_hash.addPicture(to_save);
-
-        if(image_cache.getCachedImage(img_path) == null ){
-            image_cache.cacheImage(img_path, bitmap);
-        }
-
-        nearestPictures.add(to_save);
-        pictureListModified = true;
-
-        hash_mutex.release();
     }
 
     @Override
-    public void deletePicture(PictureObject po) throws InterruptedException {
-        hash_mutex.acquire();
-        picture_hash.deletePicture(po);
+    public void deletePicture(PictureObject po){
+        try{
+            hash_mutex.acquire();
+            picture_hash.deletePicture(po);
+            hash_mutex.release();
+        }catch(Exception e){
+            Log.e("Model", "exception", e);
+            if(hash_mutex.availablePermits() <= 0){
+                hash_mutex.release();
+            }
+        }
         pictureDB.deletePicture(po);
-        hash_mutex.release();
+    }
+
+
+    private ArrayList<PictureObject> copyList(ArrayList<PictureObject> toCopy) {
+        ArrayList<PictureObject> poList = new ArrayList<>();
+        for (PictureObject po: toCopy) {
+            poList.add(po);
+        }
+        return poList;
     }
 
     @Override
     public ArrayList<PictureObject> getImageList(){
-        return nearestPictures;
+        ArrayList<PictureObject> list = null;
+        try{
+            nimg_mutex.acquire();
+            list = copyList(nearestPictures);
+            nimg_mutex.release();
+        }catch(Exception e){
+            Log.e("Model", "exception", e);
+            if(nimg_mutex.availablePermits() <= 0){
+                nimg_mutex.release();
+            }
+        }
+        return list;
     }
 
     private Point getUserLocationBox(){
@@ -171,12 +215,6 @@ public class ProjectModel implements Model{
         int final_x_box = user_box.x + PictureBox.BOX_RANGE;
         int final_y_box = user_box.y + PictureBox.BOX_RANGE;
 
-        try {
-            hash_mutex.acquire();
-        } catch (InterruptedException e) {
-            hash_mutex.release();
-            e.printStackTrace();
-        }
         for (int x= init_x_box; x <= final_x_box ; x++){
             for (int y = init_y_box; y <= final_y_box ; y++){
                 PictureBox actual_box = picture_hash.getPictureBox(x, y);
@@ -187,9 +225,20 @@ public class ProjectModel implements Model{
             }
         }
         oldNearestPictures = nearestPictures;
-        nearestPictures = newNearestPictures;
+
+        try{
+            nimg_mutex.acquire();
+            nearestPictures = newNearestPictures;
+            nimg_mutex.release();
+        }catch(Exception e){
+            Log.e("Model", "exception", e);
+            if(nimg_mutex.availablePermits() <= 0){
+                nimg_mutex.release();
+            }
+        }
+
         pictureListModified = true;
-        hash_mutex.release();
+
         return user_box;
     }
 
@@ -248,16 +297,34 @@ public class ProjectModel implements Model{
     }
 
     @Override
-    public void cleanPictureHash() throws InterruptedException {
-        hash_mutex.acquire();
-        picture_hash.clean();
-        hash_mutex.release();
+    public void cleanPictureHash() {
+        try{
+            hash_mutex.acquire();
+            picture_hash.clean();
+            hash_mutex.release();
+        }catch(Exception e){
+            Log.e("Model", "exception", e);
+            if(hash_mutex.availablePermits() <= 0){
+                hash_mutex.release();
+            }
+        }
     }
 
     @Override
     public void cleanPictureList() {
         oldNearestPictures.clear();
-        nearestPictures.clear();
+
+        try{
+            nimg_mutex.acquire();
+            nearestPictures = new ArrayList<>();
+            nimg_mutex.release();
+        }catch(Exception e){
+            Log.e("Model", "exception", e);
+            if(nimg_mutex.availablePermits() <= 0){
+                nimg_mutex.release();
+            }
+        }
+
         pictureListModified = true;
     }
 
@@ -312,7 +379,7 @@ public class ProjectModel implements Model{
     }
 
     @Override
-    public double [] getRotation(PictureObject po){
+    public float [] getRotation(PictureObject po){
         return  po.getImageRotation();
     }
 
@@ -320,5 +387,39 @@ public class ProjectModel implements Model{
     @Override
     public void setImageCreationDistance(double newDistance){
         user_data.setImageCreationDistance(newDistance);
+    }
+    @Override
+    public void setImageRemovalDistance(double newDistance){
+        user_data.setImageRemovalDistance(newDistance);
+    }
+
+    @Override
+    public double getImageRemovalDistance(){
+        return user_data.getImageRemovalDistance();
+    }
+
+    @Override
+    public float getPixelPerCentimeterRatio() {
+        return user_data.getPixelPerCentimetreRatio();
+    }
+
+    @Override
+    public float getPixelPerCentimeterRatio(PictureObject po) {
+        return po.getPixel_ratio();
+    }
+
+    @Override
+    public void setPixelPerCentimeterRatio(float newRatio) {
+        user_data.setPixelPerCentimetreRatio(newRatio);
+    }
+
+    @Override
+    public GPS_MODE getCurrentGPSMode() {
+        return user_data.getCurrentGPSMode();
+    }
+
+    @Override
+    public void setCurrentGPSMode(GPS_MODE currentMode) {
+        user_data.setCurrentGPSMode(currentMode);
     }
 }

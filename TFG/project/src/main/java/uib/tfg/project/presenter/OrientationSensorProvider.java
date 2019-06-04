@@ -157,6 +157,7 @@ public class OrientationSensorProvider extends OrientationProvider {
             // Calculate angle. Starting with API_18, Android will provide this value as event.values[3], but if not, we have to calculate it manually.
             SensorManager.getQuaternionFromVector(temporaryQuaternion, event.values);
 
+
             // Store in quaternion
             quaternionRotationVector.setXYZW(temporaryQuaternion[1], temporaryQuaternion[2], temporaryQuaternion[3], -temporaryQuaternion[0]);
             if (!positionInitialised) {

@@ -4,6 +4,8 @@ import android.graphics.Bitmap;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
+import android.support.v7.view.menu.MenuView;
+import android.util.Log;
 
 import java.util.ArrayList;
 
@@ -20,7 +22,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     GLPicture [] glPictures;
 
     private volatile static boolean stopDrawing = false;
-
+    private static float CentToMeters = 0.01f;
+    private static float TO_DEGREES = 180 / (float)Math.PI;
+    private ArrayList<PictureObject> poPictures;
     public GLRenderer(Presenter presenter, VirtualCameraView virtualCameraView) {
         this.presenter = presenter;
         this.v = virtualCameraView;
@@ -51,32 +55,49 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         // for a fixed camera, set the projection too
         GLES20.glClearColor(0f,0,0,0f);
         final float ratio = (float) width / height;
-        final float bottom = 1;
-        final float top = 1;
-        final float left = -ratio;
-        final float right = ratio;
-        final float near = 0.01f;
-        final float far = 100.0f;
-        //Matrix.frustumM(mProjectionMatrix, 0, left, right, bottom, top, near, far);
-        Matrix.perspectiveM(mProjectionMatrix, 0, CameraView.cameraVerticalAngle-9, ratio, 0.01f, 100);
+
+        Matrix.setIdentityM(mProjectionMatrix, 0);
+        Matrix.perspectiveM(mProjectionMatrix, 0, CameraView.cameraVerticalAngle-15
+                , ratio, 0.01f, 100);
+    }
+
+    private float [] getOpenGLOrientedDirectionPoint(){
+        float [] openGLRotation = new float [3];
+
+        double [] cameraRotation = v.getImageRelativeLocationLatLongHeight(1);
+
+        //double [] cameraRotation = {0, -3, 0};
+        openGLRotation[0] = (float)cameraRotation[1]; // Z = latitude
+        openGLRotation[1] = (float)cameraRotation[2]; // Y = height
+        openGLRotation[2] = -(float)cameraRotation[0]; // X = longitude
+
+        return openGLRotation;
     }
 
     private void applyOrientation(){
-        //Get Direction
-        double [] centerVector = v.getImageRelativeLocation(1);
+        //Get Direction Point
+        float [] centerVector = getOpenGLOrientedDirectionPoint();
+
         // Set the camera position (View matrix)
         float userHeight = (float)presenter.getUserHeight();
+
+
+        Matrix.setIdentityM(mViewMatrix,0);
         Matrix.setLookAtM(mViewMatrix, 0,
                 0, userHeight, 0,
-                //1f, 0, 0f,
-                //0.4f, 0, 0.3f,
-                (float)centerVector[0], userHeight + (float)centerVector[2]  , - (float) centerVector[1],
+                centerVector[0], userHeight + centerVector[1]  , centerVector[2],
                 0f, 1.0f, 0.0f);
 
         // Calculate the projection and view transformation
         Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);
 
+        if(VirtualCameraView.isRollEnabled()){
+            float rollRotation = (float)presenter.getUserRotation().getNormalizedRoll() * TO_DEGREES;
+            Matrix.rotateM(mMVPMatrix, 0, rollRotation, centerVector[0], centerVector[1], centerVector[2]);
+        }
+
     }
+
 
     @Override
     public void onDrawFrame(GL10 gl) {
@@ -86,29 +107,41 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
         applyOrientation();
 
-        ArrayList<PictureObject> poPictures = presenter.getNearestImages();
-
         //If picture list is modified
         if (presenter.pictureListModified()){
+
+            poPictures = presenter.getNearestImages();
+            int size = poPictures.size();
+
+            Log.i( "GL RENDERER", "Updating all pictures! "+ size);
             //Create objects
-            glPictures = new GLPicture[poPictures.size()];
+            if(size > 0){
+                glPictures = new GLPicture[poPictures.size()];
+            }else {
+                glPictures = null;
+            }
 
             //Clean textures
             GLPicture.cleanTextures();
 
-            for (int i = 0; i < glPictures.length; i++){
-                glPictures[i] = createGLPictureFromPictureObject(gl, poPictures.get(i));
+            if(glPictures != null){
+                for (int i = 0; i < glPictures.length; i++){
+                    glPictures[i] = createGLPictureFromPictureObject(gl, poPictures.get(i));
+                }
+
             }
 
             //Notify to model that our picture list is up to date
             presenter.pictureListUpToDate();
 
+            Log.i( "GL RENDERER", "Update finished!");
         }
 
-        for( int j = 0; j < glPictures.length; j++){
-            float [] relativePosition = getRelativePosition(poPictures.get(j)); // {1,0,0};
-
-            glPictures[j].draw(mMVPMatrix, relativePosition);
+        if(glPictures != null){
+            for( int j = 0; j < glPictures.length; j++){
+                float [] relativePosition =  getRelativePosition(poPictures.get(j));
+                glPictures[j].draw(mMVPMatrix, relativePosition);
+            }
         }
 
     }
@@ -118,14 +151,15 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     }
 
     private GLPicture createGLPictureFromPictureObject(GL10 gl, PictureObject image){
-        double [] rotation = presenter.getPictureRotation(image);
+        float pixelSize = CentToMeters/presenter.getPixelsPerCentimeterRatio(image);
+        float [] rotationMatrix = presenter.getPictureRotationMatrix(image);
         Bitmap bitmap = presenter.getPictureBitmap(image);
-        return new GLPicture(image.getImage_path(), rotation, bitmap);
+        return new GLPicture(image.getImage_path(), rotationMatrix, bitmap, pixelSize);
     }
 
     private float [] getRelativePosition(PictureObject image){
         double [] imagePosition = presenter.getPicturePosition(image);
-        double [] userPosition = presenter.getUserLocationInMeters();
+        double [] userPosition = presenter.getUserLocationInMeters().clone();
 
         for (int i = 0; i < imagePosition.length - 1; i++){
             imagePosition[i] = imagePosition[i] - userPosition[i];
@@ -133,17 +167,26 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
         //Conversions of coordenates for opengl
         float [] relativePosition = new float [3];
-        //OGL X = Real latitude
-        relativePosition[0] = (float)imagePosition[0];
+        //OGL X = Real longitude
+        relativePosition[0] = (float)imagePosition[1];
 
         //OGL Y = Real Height
         relativePosition[1] = (float)imagePosition[2];
 
-        //OGL Z = - Real longitude
-        relativePosition[2] = - (float)imagePosition[1];
+        //OGL Z = latitude
+        relativePosition[2] = -(float)imagePosition[0];
 
 
         return relativePosition;
+    }
+
+    public static float [] getImageRotationMatrix( float x, float y, float z){
+        float [] rotationMatrix = new float [16];
+        Matrix.setLookAtM(rotationMatrix, 0,
+                -x, -y, z,
+                0, 0, 0,
+                0, 1, 0);
+        return rotationMatrix;
     }
 
     public static int loadShader(int type,String shaderCode){

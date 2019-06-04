@@ -20,7 +20,7 @@ public class LocationService{
     private String TAG;
     private Model model;
     private static volatile int threadNumber = 1;
-    private final long INIT_TIME = 100; // in milliseconds
+    private final long INIT_TIME = 50; // in milliseconds
     private final float INIT_DIST = 1; // in meters
     private final int HALF_MINUTE = 1000 * 30;
     private volatile boolean running = false;
@@ -57,6 +57,7 @@ public class LocationService{
 
         @Override
         public void onProviderEnabled(String provider) {
+            Log.d(TAG, "Location provider initiated");
             if(provider.equals(LocationManager.GPS_PROVIDER)){
                 GPS_ENABLED = true;
             }
@@ -64,6 +65,7 @@ public class LocationService{
 
         @Override
         public void onProviderDisabled(String provider) {
+            Log.d(TAG, "Location provider stoped");
             if(provider.equals(LocationManager.GPS_PROVIDER)){
                 GPS_ENABLED = false;
             }

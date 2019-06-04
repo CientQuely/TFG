@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Observer;
 
 import uib.tfg.project.model.Data.PictureObject;
+import uib.tfg.project.model.Data.UserData;
 import uib.tfg.project.model.representation.Quaternion;
 
 /**
@@ -16,10 +17,14 @@ import uib.tfg.project.model.representation.Quaternion;
 
 public interface Model {
 
+    enum GPS_MODE {
+        LAST, AVERAGE, PONDERATION;
+    }
+
     //SENSORS
     Quaternion getUserRotation();
 
-    void cleanPictureHash() throws InterruptedException;
+    void cleanPictureHash();
 
     void cleanPictureList();
 
@@ -39,7 +44,7 @@ public interface Model {
     Bitmap getImageBitmap(PictureObject po);
     Location getImageLocation(PictureObject po);
     double getHeight(PictureObject po);
-    double [] getRotation(PictureObject po);
+    float [] getRotation(PictureObject po);
 
 
     //PICTURE LIST
@@ -55,12 +60,26 @@ public interface Model {
     void loadDataBase() throws InterruptedException;
 
     //DB / HASH
-    void deletePicture(PictureObject po) throws InterruptedException;
-    void createPicture(Location picLocation, double height, double [] picRotation);
+    void deletePicture(PictureObject po);
+    void createPicture(Location picLocation, double height, float [] picRotation);
     Point loadNearBoxes();
     void removeFarCacheImagesBitmap();
 
     //OBSERVER
     void setUserObserver(Observer o);
     void removeUserObserver(Observer o);
+
+    void setImageRemovalDistance(double newDistance);
+
+    double getImageRemovalDistance();
+
+    float getPixelPerCentimeterRatio();
+
+    float getPixelPerCentimeterRatio(PictureObject po);
+
+    void setPixelPerCentimeterRatio(float newRatio);
+
+
+    GPS_MODE getCurrentGPSMode();
+    void setCurrentGPSMode(GPS_MODE currentMode);
 }

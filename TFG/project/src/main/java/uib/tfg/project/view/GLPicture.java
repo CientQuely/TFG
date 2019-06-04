@@ -18,22 +18,22 @@ class GLPicture {
 
     private static HashMap<String, Integer> texture_hash = new HashMap<>();
     private static ArrayList<Integer> texturesUsedList = new ArrayList<>();
-    private static float PIXEL_SIZE = 0.0005f;
 
     private static final String vertexShaderCode =
             "uniform mat4 uMVPMatrix;"+
+                    "uniform mat4 mTranslation;"+
+                    "uniform mat4 mRotation;"+
                     "attribute vec4 inputTextureCoordinate;" +
                     "varying vec2 v_TexCoord;"+
             "attribute vec4 vPosition;"+
                     "void main() {"+
-                    "gl_Position = uMVPMatrix * vPosition;"+
+                    "gl_Position = uMVPMatrix * (vPosition * mRotation * mTranslation);"+
                     "v_TexCoord = inputTextureCoordinate.xy;" +
                     "}";
     private static final String fragmentShaderCode =
             "varying vec2 v_TexCoord;"+
             "uniform sampler2D u_texture;" +
                     "void main() {" +
-                    //"gl_FragColor=vec4(v_TexCoord.x,0,v_TexCoord.y,1);" +
                     "gl_FragColor = texture2D(u_texture, v_TexCoord);" +
                     "}";
 
@@ -66,7 +66,7 @@ class GLPicture {
 
     private int [] texture_id = new int [1];
     private final String imgPath;
-    private double [] imgRotation;
+    private float [] imgRotation;
 
     public static void cleanTextures(){
 
@@ -81,7 +81,7 @@ class GLPicture {
         texture_hash.clear();
     }
 
-    public GLPicture(String imgPath, double [] imgRotation, Bitmap bitmap){
+    public GLPicture(String imgPath, float [] imgRotation, Bitmap bitmap, float pixel_size){
         this.imgPath = imgPath;
         this.imgRotation = imgRotation;
 
@@ -97,6 +97,7 @@ class GLPicture {
 
         //generate imageRelativeSize
         generateVertexImageSize(bitmap.getHeight(), bitmap.getWidth());
+        resizeMatrix(pixel_size);
 
         //create buffer with vertex position
         createVertexDrawPositionBuffer();
@@ -112,14 +113,14 @@ class GLPicture {
     }
 
     private void generateVertexImageSize(float height, float width){
-        float mH = height * PIXEL_SIZE / 2;
-        float mW = width * PIXEL_SIZE / 2;
+        float mH = height / 2;
+        float mW = width / 2;
 
         float [] sizeCoords = {
-            0,mH,-mW, // top left
-            0,-mH, -mW, // bottom left
-            0,-mH, mW, // bottom right
-            0,mH,mW, // top right
+                -mW,mH,0, // top left
+                -mW,-mH,0, // bottom left
+                mW,-mH,0, // bottom right
+                mW,mH,0, // top right
         };
 
         quadCoords = sizeCoords;
@@ -204,14 +205,10 @@ class GLPicture {
         return textureHandle[0];
     }
 
-    private float [] movePicture(float x, float y, float z){
-        float [] realPosition = {
-                x + quadCoords[0], y + quadCoords[1], z + quadCoords[2],
-                x + quadCoords[3], y + quadCoords[4], z + quadCoords[5],
-                x + quadCoords[6], y + quadCoords[7], z + quadCoords[8],
-                x + quadCoords[9], y + quadCoords[10], z + quadCoords[11],
-        };
-        return realPosition;
+    private void resizeMatrix(float pixelSize){
+        for (int i = 0; i < quadCoords.length; i++) {
+            quadCoords[i] = quadCoords[i]*pixelSize;
+        }
     }
 
     private void setVectorBuffer(float [] realPosition){
@@ -220,34 +217,38 @@ class GLPicture {
         vertexBuffer.position(0);
     }
 
+    private float [] createTranslationMatrix(float x, float y, float z){
+        float [] translationMatrix = new float [16];
+        Matrix.setIdentityM(translationMatrix, 0);
+        translationMatrix[3] = x;
+        translationMatrix[7] = y;
+        translationMatrix[11] = z;
+        return translationMatrix;
+    }
+
+
     public void draw(float [] myMVPMatrix, float [] position){
-
-        float [] realPosition = movePicture(position[0], position[1], position[2]);
-        setVectorBuffer(realPosition);
-
-        int mMVPMatrixHandle;
+        setVectorBuffer(quadCoords);
 
         GLES20.glUseProgram(mProgram);
+
+        //TRANSLATION
+        int translationHandler = GLES20.glGetUniformLocation(mProgram, "mTranslation");
+        float [] translationMatrix = createTranslationMatrix(position[0], position[1], position[2]);
+
+        //ROTATION
+        int rotationHandler = GLES20.glGetUniformLocation(mProgram, "mRotation");
 
         mPositionHandle = GLES20.glGetAttribLocation(mProgram, "vPosition");
 
         // get handle to shape's transformation matrix
-        mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
+        int mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
 
-        // get texture handle
-        int textureUniformHandle = GLES20.glGetAttribLocation(mProgram, "u_tecture");
         textureHandle = GLES20.glGetAttribLocation(mProgram, "inputTextureCoordinate");
 
         // Bind current texture
         GLES20.glActiveTexture ( GLES20.GL_TEXTURE0 );
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture_id[0]);
-
-        //Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
-        GLES20.glUniform1i(textureUniformHandle, 0);
-
-
-
-
 
         // SET RECTANGLE VERTEX
         GLES20.glEnableVertexAttribArray(mPositionHandle);
@@ -258,8 +259,10 @@ class GLPicture {
         GLES20.glEnableVertexAttribArray(textureHandle);
         GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, textureStride, textureBuffer);
 
-        // VIEW TRANSFORMATION
+        // BIND ALL MATRIX
         GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, myMVPMatrix, 0);
+        GLES20.glUniformMatrix4fv(translationHandler, 1, false, translationMatrix, 0);
+        GLES20.glUniformMatrix4fv(rotationHandler, 1, false, imgRotation, 0);
 
         // DRAW PICTURE
         GLES20.glDrawElements(GLES20.GL_TRIANGLES, drawOrder.length,

@@ -67,7 +67,7 @@ public class Quaternion extends Vector4f {
 
     /**
      * Copies the values from the given quaternion to this one
-     * 
+     *
      * @param quat The quaternion to copy from
      */
     public void set(Quaternion quat) {
@@ -77,7 +77,7 @@ public class Quaternion extends Vector4f {
 
     /**
      * Multiply this quaternion by the input quaternion and store the result in the out quaternion
-     * 
+     *
      * @param input
      * @param output
      */
@@ -111,7 +111,7 @@ public class Quaternion extends Vector4f {
 
     public void multiplyByQuat(Quaternion input) {
         this.dirty = true;
-        if(tmpQuaternion == null) tmpQuaternion = new Quaternion();
+        if (tmpQuaternion == null) tmpQuaternion = new Quaternion();
         tmpQuaternion.copyVec4(this);
         multiplyByQuat(input, tmpQuaternion);
         this.copyVec4(tmpQuaternion);
@@ -119,7 +119,7 @@ public class Quaternion extends Vector4f {
 
     /**
      * Multiplies this Quaternion with a scalar
-     * 
+     *
      * @param scalar the value that the vector should be multiplied with
      */
     public void multiplyByScalar(float scalar) {
@@ -129,7 +129,7 @@ public class Quaternion extends Vector4f {
 
     /**
      * Add a quaternion to this quaternion
-     * 
+     *
      * @param input The quaternion that you want to add to this one
      */
     public void addQuat(Quaternion input) {
@@ -139,8 +139,8 @@ public class Quaternion extends Vector4f {
 
     /**
      * Add this quaternion and another quaternion together and store the result in the output quaternion
-     * 
-     * @param input The quaternion you want added to this quaternion
+     *
+     * @param input  The quaternion you want added to this quaternion
      * @param output The quaternion you want to store the output in.
      */
     public void addQuat(Quaternion input, Quaternion output) {
@@ -152,7 +152,7 @@ public class Quaternion extends Vector4f {
 
     /**
      * Subtract a quaternion to this quaternion
-     * 
+     *
      * @param input The quaternion that you want to subtracted from this one
      */
     public void subQuat(Quaternion input) {
@@ -162,8 +162,8 @@ public class Quaternion extends Vector4f {
 
     /**
      * Subtract another quaternion from this quaternion and store the result in the output quaternion
-     * 
-     * @param input The quaternion you want subtracted from this quaternion
+     *
+     * @param input  The quaternion you want subtracted from this quaternion
      * @param output The quaternion you want to store the output in.
      */
     public void subQuat(Quaternion input, Quaternion output) {
@@ -178,9 +178,9 @@ public class Quaternion extends Vector4f {
      * {@link Quaternion#getMatrix4x4 getMatrix4x4}
      */
     private void convertQuatToMatrix() {
-        float x = points[0];
+        float z = points[0];
         float y = points[1];
-        float z = points[2];
+        float x = points[2];
         float w = points[3];
 
         matrix.setX0(1 - 2 * (y * y) - 2 * (z * z)); //1 - 2y2 - 2z2
@@ -203,7 +203,7 @@ public class Quaternion extends Vector4f {
 
     /**
      * Get an axis angle representation of this quaternion.
-     * 
+     *
      * @param output Vector4f axis angle.
      */
     public void toAxisAngle(Vector4f output) {
@@ -238,33 +238,34 @@ public class Quaternion extends Vector4f {
      * Returns respectively, the pitch, yaw and roll of this quaternion as euler angles in the double array respectively
      *
      * @return An array of size 3 containing the euler angles for this quaternion
-     * assumes is a normalised quaternion */
+     * assumes is a normalised quaternion
+     */
     public double[] toEuler() {
         double[] ret = new double[3];
         normalise();
-        double w =  getW();
-        double x =  getX();
-        double y =  getY();
-        double z =  getZ();
-        double test = x*y + z*w;
+        double w = getW();
+        double x = getX();
+        double y = getY();
+        double z = getZ();
+        double test = x * y + z * w;
         if (test > 0.499) { // singularity at north pole
-            ret[0] = 2 * Math.atan2(x,w);
-            ret[1] = Math.PI/2;
+            ret[0] = 2 * Math.atan2(x, w);
+            ret[1] = Math.PI / 2;
             ret[2] = 0;
             return ret;
         }
         if (test < -0.499) { // singularity at south pole
-            ret[0] = -2 * Math.atan2(x,w);
-            ret[1] = - Math.PI/2;
+            ret[0] = -2 * Math.atan2(x, w);
+            ret[1] = -Math.PI / 2;
             ret[2] = 0;
             return ret;
         }
-        double sqx = x*x;
-        double sqy = y*y;
-        double sqz = z*z;
-        ret[0] = Math.atan2(2*y*w-2*x*z , 1 - 2*sqy - 2*sqz);
-        ret[1] = Math.asin(2*test);
-        ret[2] = Math.atan2(2*x*w-2*y*z , 1 - 2*sqx - 2*sqz);
+        double sqx = x * x;
+        double sqy = y * y;
+        double sqz = z * z;
+        ret[0] = Math.atan2(2 * y * w - 2 * x * z, 1 - 2 * sqy - 2 * sqz);
+        ret[1] = Math.asin(2 * test);
+        ret[2] = Math.atan2(2 * x * w - 2 * y * z, 1 - 2 * sqx - 2 * sqz);
         return ret;
     }
 
@@ -287,7 +288,6 @@ public class Quaternion extends Vector4f {
     /**
      * This is an internal method used to build a quaternion from a rotation matrix and then sets the current quaternion
      * from that matrix.
-     * 
      */
     private void generateQuaternionFromMatrix() {
 
@@ -361,7 +361,7 @@ public class Quaternion extends Vector4f {
     /**
      * You can set the values for this quaternion based off a rotation matrix. If the matrix you supply is not a
      * rotation matrix this will fail. You MUST provide a 4x4 matrix.
-     * 
+     *
      * @param matrix A column major rotation matrix
      */
     public void setColumnMajor(float[] matrix) {
@@ -375,7 +375,7 @@ public class Quaternion extends Vector4f {
     /**
      * You can set the values for this quaternion based off a rotation matrix. If the matrix you supply is not a
      * rotation matrix this will fail.
-     * 
+     *
      * @param matrix A column major rotation matrix
      */
     public void setRowMajor(float[] matrix) {
@@ -388,10 +388,10 @@ public class Quaternion extends Vector4f {
 
     /**
      * Set this quaternion from axis angle values. All rotations are in degrees.
-     * 
+     *
      * @param azimuth The rotation around the z axis
-     * @param pitch The rotation around the y axis
-     * @param roll The rotation around the x axis
+     * @param pitch   The rotation around the y axis
+     * @param roll    The rotation around the x axis
      */
     public void setEulerAngle(float azimuth, float pitch, float roll) {
 
@@ -417,7 +417,7 @@ public class Quaternion extends Vector4f {
 
     /**
      * Rotation is in degrees. Set this quaternion from the supplied axis angle.
-     * 
+     *
      * @param vec The vector of rotation
      * @param rot The angle of rotation around that vector in degrees.
      */
@@ -460,11 +460,11 @@ public class Quaternion extends Vector4f {
     /**
      * Get a linear interpolation between this quaternion and the input quaternion, storing the result in the output
      * quaternion.
-     * 
-     * @param input The quaternion to be slerped with this quaternion.
+     *
+     * @param input  The quaternion to be slerped with this quaternion.
      * @param output The quaternion to store the result in.
-     * @param t The ratio between the two quaternions where 0 <= t <= 1.0 . Increase value of t will bring rotation
-     *            closer to the input quaternion.
+     * @param t      The ratio between the two quaternions where 0 <= t <= 1.0 . Increase value of t will bring rotation
+     *               closer to the input quaternion.
      */
     public void slerp(Quaternion input, Quaternion output, float t) {
         // Calculate angle between them.
@@ -473,7 +473,7 @@ public class Quaternion extends Vector4f {
         float cosHalftheta = this.dotProduct(input);
 
         if (cosHalftheta < 0) {
-            if(tmpQuaternion == null) tmpQuaternion = new Quaternion();
+            if (tmpQuaternion == null) tmpQuaternion = new Quaternion();
             bufferQuat = tmpQuaternion;
             cosHalftheta = -cosHalftheta;
             bufferQuat.points[0] = (-input.points[0]);
@@ -489,7 +489,7 @@ public class Quaternion extends Vector4f {
          * double ratioA = Math.sin((1 - t) * angle);
          * double ratioB = Math.sin(t * angle);
          * double divisor = Math.sin(angle);
-         * 
+         *
          * //Calculate Quaternion
          * output.setW((float)((this.getW() * ratioA + input.getW() * ratioB)/divisor));
          * output.setX((float)((this.getX() * ratioA + input.getX() * ratioB)/divisor));
@@ -533,18 +533,18 @@ public class Quaternion extends Vector4f {
         }
     }
 
-    public double[] calculateRollPitchYawAngles(double [] angle){
+    public double[] calculateRollPitchYawAngles(double[] angle) {
         float x = getX();
         float y = getY();
         float z = getZ();
         float w = getW();
-        angle[0] = Math.atan2(2*y*w + 2*x*z, 1 - 2*y*y - 2*z*z);
-        angle[1] = Math.atan2(2*x*w + 2*y*z, 1 - 2*x*x - 2*z*z);
-        angle[2] = Math.asin(2*x*y + 2*z*w);
+        angle[0] = Math.atan2(2 * y * w + 2 * x * z, 1 - 2 * y * y - 2 * z * z);
+        angle[1] = Math.atan2(2 * x * w + 2 * y * z, 1 - 2 * x * x - 2 * z * z);
+        angle[2] = Math.asin(2 * x * y + 2 * z * w);
         return angle;
     }
 
-    public Quaternion multiply(Quaternion a, Quaternion b){
+    public Quaternion multiply(Quaternion a, Quaternion b) {
         Quaternion result = new Quaternion();
         float x1 = a.points[0];
         float y1 = a.points[1];
@@ -555,23 +555,76 @@ public class Quaternion extends Vector4f {
         float z2 = b.points[2];
         float w2 = b.points[3];
 
-        result.points[3] = w2*w1 - x2*x1 - y2*y1 -z2*z1;
+        result.points[3] = w2 * w1 - x2 * x1 - y2 * y1 - z2 * z1;
 
-        result.points[0] = w2*x1 + x2*w1 - y2*z1 + z2*y1;
+        result.points[0] = w2 * x1 + x2 * w1 - y2 * z1 + z2 * y1;
 
-        result.points[1] = w2*y1 + x2*z1 + y2*w1 - z2*x1;
+        result.points[1] = w2 * y1 + x2 * z1 + y2 * w1 - z2 * x1;
 
-        result.points[2] = w2*z1 - x2*y1 + y2*x1 + z2*w1;
+        result.points[2] = w2 * z1 - x2 * y1 + y2 * x1 + z2 * w1;
 
         return result;
     }
-    public Quaternion rotateQuaternionVector(Quaternion base_vector){
-        Quaternion negated = new Quaternion();
-        negated.setXYZW(-this.points[0],-this.points[1],-this.points[2], this.points[3]);
-        Quaternion result = multiply(multiply(this, base_vector), negated);
+
+
+    private double[] quaternion_mult(double[] q, double[] r) {
+
+        double[] result = {
+                r[0] * q[0] - r[1] * q[1] - r[2] * q[2] - r[3] * q[3], // W
+                r[0] * q[1] + r[1] * q[0] - r[2] * q[3] + r[3] * q[2], // X
+                r[0] * q[2] + r[1] * q[3] + r[2] * q[0] - r[3] * q[1], // Y
+                r[0] * q[3] - r[1] * q[2] + r[2] * q[1] + r[3] * q[0]};  // Z
+
         return result;
-       // this.multiplyByQuat(base_vector, result);
-        //result.multiplyByQuat(negated, result);
     }
 
+    private double[] point_rotation_by_quaternion(double[] q_point, double[] q) {
+        double[] q_conj = {q[0], -1 * q[1], -1 * q[2], -1 * q[3]};
+        return quaternion_mult(quaternion_mult(q, q_point), q_conj);
+    }
+
+    public double[] rotateVector(double[] vector) {
+        double[] q_point = {0, vector[0], vector[1], vector[2]};
+        double[] q_rotation = {getW(), getX(), getY(), getZ()};
+
+        double[] q_result = point_rotation_by_quaternion(q_point, q_rotation);
+        double[] v_result = {q_result[1], q_result[2], q_result[3]};
+
+        return v_result;
+    }
+
+    public double getNormalizedRollInDegrees() {
+        double [] vector = {0, 0, 1};
+        double [] rotationV = rotateVector(vector);
+
+        double x = rotationV[0];
+        double y = rotationV[1];
+        double rotationY = Math.abs(y * 90);
+
+        double rotation = 0;
+
+        if( x >= 0 && y >= 0){
+            rotation = rotationY;
+        }else if( x <= 0 && y >= 0){
+            rotation = 90 + (90 - rotationY);
+        }else if( x <= 0 && y <= 0){
+            rotation = 180 + rotationY;
+        }else{
+            // x > 0 && y < 0
+            rotation = 270 + (90 - rotationY);
+        }
+        return rotation;
+    }
+
+    public double getNormalizedRoll() {
+        double [] eulerAngles = toEuler();
+
+        if ( eulerAngles[0] < 0){
+            if ( eulerAngles[1] != Math.PI/2 && eulerAngles[1] != -Math.PI/2){
+                eulerAngles[2] = - (eulerAngles[2] + Math.PI);
+            }
+        }
+
+        return eulerAngles[2];
+    }
 }

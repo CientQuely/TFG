@@ -3,27 +3,30 @@ package uib.tfg.project.model.Data;
 import android.location.Location;
 
 public class PictureObject {
-    private long picture_id;
-    private float user_id;
-    private String image_path;
-    private double [] imageRotation;
-    private Location location;
+    private volatile long picture_id;
+    private volatile float user_id;
+    private volatile String image_path;
+    private volatile float [] rotationMatrix;
+    private volatile Location location;
     //In meters
-    private double height;
+    private volatile double height;
     private static final String SEPARATOR = "%";
 
+    private float pixel_ratio;
+
     public PictureObject(float user_id, String img_path, Location img_location,
-                         double height, double [] imageRotation){
+                         double height, float [] rotation, float pixel_ratio){
             this.image_path = img_path;
             this.location = img_location;
             this.height = height;
             this.user_id = user_id;
-            this.imageRotation = imageRotation;
+            this.rotationMatrix = rotation;
+            this.pixel_ratio = pixel_ratio;
     }
 
     // Radiants
-    public double [] getImageRotation(){
-        return imageRotation;
+    public float [] getImageRotation(){
+        return rotationMatrix;
     }
 
     public long getPicture_id() {
@@ -79,7 +82,34 @@ public class PictureObject {
         return doubleValues;
     }
 
-    public String getRotationString() {
-        return  String.valueOf(imageRotation[0])+SEPARATOR+imageRotation[1]+SEPARATOR+imageRotation[2];
+    public static float [] parseQueryStringFloat(String queryString) {
+        String [] values = queryString.split(SEPARATOR);
+
+        float [] doubleValues = new float [values.length];
+
+        for(int i = 0; i < values.length; i++){
+            doubleValues[i] = Float.parseFloat(values[i]);
+        }
+        return doubleValues;
     }
+    public String getRotationString() {
+        String s = "";
+        for (int i = 0; i < rotationMatrix.length; i++) {
+            s += rotationMatrix[i] + SEPARATOR;
+        }
+        if(s.length() > 0){
+            return s.substring(0, s.length() - 1);
+        }
+        return "-1";
+    }
+
+
+    public float getPixel_ratio() {
+        return pixel_ratio;
+    }
+
+    public void setPixel_ratio(float pixel_ratio) {
+        this.pixel_ratio = pixel_ratio;
+    }
+
 }

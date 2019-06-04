@@ -3,27 +3,20 @@ package uib.tfg.project.view;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
-import android.view.GestureDetector;
 import android.widget.Toast;
 
 import java.io.IOException;
-import java.util.concurrent.Semaphore;
 import android.util.Log;
 
-import uib.tfg.project.ProjectView;
 import uib.tfg.project.R;
 import uib.tfg.project.model.Data.PictureObject;
 import uib.tfg.project.presenter.Presenter;
@@ -37,9 +30,7 @@ public class AugmentedReality extends Activity implements View{
     private VirtualCameraView virtualStream;
     private LoggerText loggerStream;
     private SlidingMenu slidingMenu;
-    private final Semaphore mutex = new Semaphore(0);
     private static final String TAG = "View/AugmentedReality";
-    private GestureDetector gestureDetector;
 
     public AugmentedReality(){
         super();
@@ -48,14 +39,12 @@ public class AugmentedReality extends Activity implements View{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Bitmap not_foung_img = BitmapFactory.decodeResource(this.getResources(), R.drawable.not_found_img);
+
         presenter = new ProjectPresenter(this, this, not_foung_img);
-        if(!hasFeatures()){
-            Toast.makeText(this, "Tu movil no posee todas las características para" +
-                            "poder ejecutar esta app.",
-                    Toast.LENGTH_LONG).show();
-            goToMenu();
-            return;
-        }
+
+        //DB Initiation
+        presenter.startDataBase();
+        presenter.populateImagesFromDB();
 
         setContentView(R.layout.activity_augmented_reality);
 
@@ -71,10 +60,8 @@ public class AugmentedReality extends Activity implements View{
 
             });
 
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            Log.e(TAG, "Error", e);
         }
 
         //Crea la vista de la camara
@@ -82,7 +69,8 @@ public class AugmentedReality extends Activity implements View{
 
         loggerStream = new LoggerText(this, presenter, this.findViewById(R.id.debbugerText));
 
-        DrawerLayout mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+
+        DrawerLayout mDrawerLayout = findViewById(R.id.drawer_layout);
         mDrawerLayout.setDrawerListener(new DrawerLayout.DrawerListener() {
             @Override
             public void onDrawerSlide(@NonNull android.view.View drawerView, float slideOffset) {
@@ -91,12 +79,16 @@ public class AugmentedReality extends Activity implements View{
 
             @Override
             public void onDrawerOpened(@NonNull android.view.View drawerView) {
-                virtualStream.hideVirtualCameraView();
+                if(virtualStream != null){
+                    virtualStream.hideVirtualCameraView();
+                }
             }
 
             @Override
             public void onDrawerClosed(@NonNull android.view.View drawerView) {
-                virtualStream.unhideVirtualCameraView();
+                if(virtualStream != null){
+                    virtualStream.unhideVirtualCameraView();
+                }
             }
 
             @Override
@@ -109,111 +101,35 @@ public class AugmentedReality extends Activity implements View{
     @Override
     public void onStart(){
         super.onStart();
-        if(!Permits.hasAllPermits(this)) {
-            getRemainingPermits();
-            Log.i(TAG,"Waiting permission response...");
-            return;
-        }
-    }
-    private boolean hasFeatures() {
-        PackageManager pm = this.getPackageManager();
-        boolean hasAllFeatures = true;
-        if(!pm.hasSystemFeature(PackageManager.FEATURE_CAMERA)){
-            Log.e("TAG","This device don't have Camera");
-            hasAllFeatures = false;
-        }
-
-        if(!pm.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)){
-            Log.e("TAG","This device don't have GPS system.");
-            hasAllFeatures = false;
-        }
-
-        if(!pm.hasSystemFeature(PackageManager.FEATURE_SENSOR_GYROSCOPE)){
-            Log.e("TAG","This device don't have Gyroscope sensor.");
-            hasAllFeatures = false;
-        }
-
-        if(!pm.hasSystemFeature(PackageManager.FEATURE_SENSOR_COMPASS)){
-            Log.e("TAG","This device don't have Compass sensor.");
-            hasAllFeatures = false;
-        }
-
-        if(!pm.hasSystemFeature(PackageManager.FEATURE_SENSOR_ACCELEROMETER)){
-            Log.e("TAG","This device don't have Accelerometer sensor.");
-            hasAllFeatures = false;
-        }
-
-        Log.i(TAG, "Device has all features used by this app");
-        return hasAllFeatures;
-    }
-
-    private void getRemainingPermits() {
-        String [] features_to_request = Permits.getFeaturesToRequest();
-        if(features_to_request != null) {
-            ActivityCompat.requestPermissions(this, features_to_request, Permits.ALL_PERMITS_REQUEST);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[],
-                                           int[] grantResults){
-        if(Permits.ALL_PERMITS_REQUEST == requestCode){
-            Permits.updatePermits(permissions, grantResults);
-        }
-
-        if(Permits.hasAllPermits(this)){
-            Toast.makeText(this, "Todos los permisos obtenidos !!",
-                    Toast.LENGTH_LONG).show();
-        }else{
-            Toast.makeText(this, "Esta app no puede funcionar si no se aceptan" +
-                            "todos los permisos.",
-                    Toast.LENGTH_LONG).show();
-            goToMenu();
-        }
-
-        if(Permits.CAMERA_PERMIT){
-            //si es la primera vez que llamamos a la camara y aun no teniamos permisos
-            if(!cameraStream.cameraAvailable()){
-                cameraStream.start();
-            }
-        }
-    }
-
-    private void goToMenu() {
-        Intent pv = new Intent(this, ProjectView.class);
-        startActivity(pv);
     }
 
     @Override
     public void onResume(){
         super.onResume();
+
         presenter.setContext(this);
         presenter.startDataBase();
 
         if(!cameraStream.isAvailable()){
-           cameraStream.start();
+            cameraStream.start();
         }
-        if(Permits.GPS_PERMIT){
-           presenter.initiateLocationService();
-        }
-        if(Permits.SENSORS_PERMIT){
-            presenter.initiateSensorsService();
-        }
-        if(Permits.STORAGE_PERMIT){
-            presenter.initiatePictureLoader();
-        }
-        if(Permits.hasAllPermits(this)){
-            if (virtualStream == null){
-                virtualStream = new VirtualCameraView(this, this.findViewById(R.id.virtual_view)
-                        ,presenter, "View/VirtualCameraView");
-            }else{
-                virtualStream.onResume();
-            }
 
-            loggerStream = new LoggerText(this, presenter, this.findViewById(R.id.debbugerText));
-            loggerStream.start();
+        if(! slidingMenu.GPS_BLOCKED){
+            presenter.initiateLocationService();
         }
+
+        presenter.initiateSensorsService();
+
+        presenter.initiatePictureLoader();
+
+        if (virtualStream == null){
+            virtualStream = new VirtualCameraView(this.findViewById(R.id.virtual_view), presenter);
+        }else{
+            virtualStream.onResume();
+        }
+
+        loggerStream = new LoggerText(this, presenter, this.findViewById(R.id.debbugerText));
+        loggerStream.start();
     }
 
     protected void onPause() {
@@ -222,8 +138,10 @@ public class AugmentedReality extends Activity implements View{
         presenter.stopLocationService();
         presenter.stopSensorsService();
         presenter.stopPictureLoader();
-        virtualStream.onPause();
-        if(loggerStream.isRunning()){
+        if (virtualStream != null) {
+            virtualStream.onPause();
+        }
+        if (loggerStream.isRunning()) {
             loggerStream.stopLoggerText();
         }
         presenter.stopDataBase();
@@ -234,7 +152,18 @@ public class AugmentedReality extends Activity implements View{
     {
         if (requestCode == SlidingMenu.PICK_IMAGE && data != null && resultCode != 0) {
                 Uri selectedImage = data.getData();
-                String path = getRealPathFromURI(this,selectedImage);
+
+                String path;
+                try{
+                    path = getRealPathFromURI(this,selectedImage);
+                }catch(Exception e){
+                    Log.e("AugmentedReality", "Error", e);
+
+                    Toast.makeText(this, "Image could not be loaded due to an erroneous " +
+                                    "format or a not allowed destination",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
             Bitmap bitmap;
             try {
                 bitmap = MediaStore.Images.
@@ -246,9 +175,11 @@ public class AugmentedReality extends Activity implements View{
                     slidingMenu.showMenuMessage("Image could not be loaded");
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e("Augmented Reality", "exception", e);
             }
 
+        }else{
+            slidingMenu.showMenuMessage("Image not obtained, please select another image");
         }
     }
 
@@ -273,32 +204,40 @@ public class AugmentedReality extends Activity implements View{
     }
 
     public void onDoubleTouchScreen(float x, float y) {
-        PictureObject pointed_picture = virtualStream.findPointedPicture();
-        /*
-        if(pointed_picture != null){
-            try {
-                presenter.deletePicture(pointed_picture);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        Log.i("Main Thread Augmented Reality", " Double touch created");
+        if(slidingMenu.INSERTION_MODE_ON){
+            if(presenter.getCurrentBitmap() == null){
+                Toast.makeText(this, "Image not selected, please select an image.",
+                        Toast.LENGTH_LONG).show();
+            }else{
+                createImage();
             }
-            return;
+        }else{
+            deleteImage();
         }
-        */
-        if(presenter.getCurrentBitmap() == null){
-            Toast.makeText(this, "Image not selected, please select an image.",
+        Log.i("Main Thread Augmented Reality", " Double touch completed");
+    }
+
+    private synchronized void deleteImage(){
+        double distance = presenter.getImageRemovalDistance();
+        PictureObject pointed_picture = virtualStream.getNearestImageInRange(distance);
+        if(pointed_picture == null) {
+            Toast.makeText(this, "No image closer than "+ distance + " meter has been found for removal",
                     Toast.LENGTH_LONG).show();
         }else{
-            createImage();
-            Toast.makeText(this, "Image created!",
-                    Toast.LENGTH_SHORT).show();
+            presenter.deletePicture(pointed_picture);
+            Toast.makeText(this, "Image deleted",
+                    Toast.LENGTH_LONG).show();
         }
     }
 
-    public void createImage(){
+    private synchronized void createImage(){
         double distance = presenter.getImageCreationDistance();
         double [] imageLocation = virtualStream.getPointedLocation(distance);
-        double [] imageRotation = virtualStream.getImageRotation();
+        float [] imageRotation = virtualStream.getImageRotation();
         presenter.createPicture(imageLocation, imageRotation);
+        Toast.makeText(this, "Image created at "+distance+ " meters",
+                Toast.LENGTH_SHORT).show();
     }
 }
 

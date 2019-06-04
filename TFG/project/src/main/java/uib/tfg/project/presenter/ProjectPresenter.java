@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.hardware.SensorManager;
 import android.location.Location;
+import android.util.Log;
 
 import java.util.ArrayList;
 
@@ -14,7 +15,7 @@ import uib.tfg.project.model.representation.Quaternion;
 import uib.tfg.project.view.View;
 
 
-public class ProjectPresenter extends Thread implements Presenter{
+public class ProjectPresenter implements Presenter{
 
     private Model model;
     private View view;
@@ -33,11 +34,6 @@ public class ProjectPresenter extends Thread implements Presenter{
         SensorManager sensorsManager = (SensorManager) appContext.getSystemService(Context.SENSOR_SERVICE);
         sensorService = new OrientationSensorProvider(sensorsManager, model);
         pictureLoader = new PictureLoader(model);
-
-    }
-
-    @Override
-    public void run(){
 
     }
 
@@ -101,6 +97,16 @@ public class ProjectPresenter extends Thread implements Presenter{
     }
 
     @Override
+    public double getImageRemovalDistance() {
+        return model.getImageRemovalDistance();
+    }
+
+    @Override
+    public void setImageRemovalDistance(double newDistance) {
+        model.setImageRemovalDistance(newDistance);
+    }
+
+    @Override
     public void initiatePictureLoader() {
         if(pictureLoader.getState() == Thread.State.NEW){
             pictureLoader.start();
@@ -115,6 +121,7 @@ public class ProjectPresenter extends Thread implements Presenter{
             pictureLoader = new PictureLoader(model);
         }
     }
+
     @Override
     public void stopDataBase() {
         model.closeDataBase();
@@ -150,32 +157,91 @@ public class ProjectPresenter extends Thread implements Presenter{
         model.setUserHeight(height);
     }
 
-    @Override
-    public void deleteDataBase() {
-        model.cleanDataBase();
-        try {
-            model.cleanPictureHash();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        model.cleanPictureList();
-    }
 
     @Override
     public Bitmap getCurrentBitmap(){
         return model.getCurrentBitmap();
     }
 
+
     @Override
-    public void createPicture(double [] iPosition, double [] iRotation) {
-        Location imgLocation = LocationService.metersToLocation(iPosition[0], iPosition[1]);
-        model.createPicture(imgLocation, iPosition[2],  iRotation);
+    public void populateImagesFromDB(){
+        new Thread(new Runnable() {
+            private Model model;
+            public Runnable init(Model m) {
+                this.model = m;
+                return this;
+            }
+            @Override
+            public void run() {
+                try {
+                    model.loadDataBase();
+                } catch (InterruptedException e) {
+                    Log.e("Model", "exception", e);
+                }
+                model.loadNearBoxes();
+            }
+        }.init(model)).start();
     }
 
     @Override
-    public void deletePicture(PictureObject pointed_picture) throws InterruptedException {
-        model.deletePicture(pointed_picture);
+    public void deleteDataBase() {
+        new Thread(new Runnable() {
+            private Model model;
+            public Runnable init(Model m) {
+                this.model = m;
+                return this;
+            }
+            @Override
+            public void run() {
+                model.cleanDataBase();
+                model.cleanPictureHash();
+                model.cleanPictureList();
+            }
+        }.init(model)).start();
     }
+
+    @Override
+    public void createPicture(double [] iPosition, float [] iRotation) {
+        Location imgLocation = LocationService.metersToLocation(iPosition[0], iPosition[1]);
+        new Thread(new Runnable() {
+            private Model model;
+            private Location l;
+            private double height;
+            private float [] rotation;
+            public Runnable init(Location l, double height, float [] rotation, Model m) {
+                this.l = l;
+                this.height = height;
+                this.rotation = rotation;
+                this.model = m;
+                return this;
+            }
+            @Override
+            public void run() {
+
+                model.createPicture(l, height, rotation);
+            }
+        }.init(imgLocation, iPosition[2], iRotation, model)).start();
+    }
+
+    @Override
+    public void deletePicture(PictureObject pointed_picture){
+        new Thread(new Runnable() {
+            private Model model;
+            private PictureObject po;
+            public Runnable init(PictureObject po, Model m) {
+                this.po = po;
+                this.model = m;
+                return this;
+            }
+            @Override
+            public void run() {
+                    model.deletePicture(po);
+                    model.loadNearBoxes();
+            }
+        }.init(pointed_picture, model)).start();
+    }
+
 
     @Override
     public ArrayList<PictureObject> getNearestImages() {
@@ -202,7 +268,7 @@ public class ProjectPresenter extends Thread implements Presenter{
     }
 
     @Override
-    public double [] getPictureRotation(PictureObject po){
+    public float [] getPictureRotationMatrix(PictureObject po){
         return model.getRotation(po);
     }
 
@@ -212,8 +278,32 @@ public class ProjectPresenter extends Thread implements Presenter{
     }
 
     @Override
+    public float getPixelsPerCentimeterRatio() {
+        return model.getPixelPerCentimeterRatio();
+    }
+
+    @Override
+    public float getPixelsPerCentimeterRatio(PictureObject po) {
+        return model.getPixelPerCentimeterRatio(po);
+    }
+
+    @Override
+    public void setPixelsPerCentimeterRatio(float newRatio) {
+        model.setPixelPerCentimeterRatio(newRatio);
+    }
+
+    @Override
     public void pictureListUpToDate(){
         model.setPictureListModified(false);
     }
 
+    @Override
+    public Model.GPS_MODE getCurrentGPSMode(){
+        return model.getCurrentGPSMode();
+    };
+
+    @Override
+    public void setCurrentGPSMode(Model.GPS_MODE currentMode){
+        model.setCurrentGPSMode(currentMode);
+    };
 }

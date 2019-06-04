@@ -15,7 +15,7 @@ public class Permits {
         static public boolean STORAGE_PERMIT = false;
         static public boolean SENSORS_PERMIT = false;
 
-        static final int ALL_PERMITS_REQUEST = 1;
+        static public final int ALL_PERMITS_REQUEST = 1;
 
         static public final String CAMERA_MANIFEST = Manifest.permission.CAMERA;
         static public final String GPS_MANIFEST = Manifest.permission.ACCESS_FINE_LOCATION;

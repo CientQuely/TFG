@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -64,10 +65,10 @@ public class LoggerText extends Thread{
             }
             try{
                 print_debug_logs();
-
                 Thread.sleep(100);
+
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Log.e("LoggerView", "Error", e);
             }
         }
         running = false;
@@ -106,7 +107,8 @@ public class LoggerText extends Thread{
                 ", yaw:" + sensors.format(toDegrees(angle[1])) +
                 ", roll:" + sensors.format(toDegrees(angle[2]));
 
-        double[] rl = VirtualCameraView.getImageRelativeLocation(presenter, 1);
+        double[] rl = VirtualCameraView.getImageRelativeLocationLatLongHeight(presenter, 1);
+
         text += "\nRL= " +
                 " Alt: " + sensors.format(rl[2]) +
                 " ,lat: " + sensors.format(rl[0]) +

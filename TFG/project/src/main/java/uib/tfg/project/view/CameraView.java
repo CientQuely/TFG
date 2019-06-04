@@ -161,7 +161,7 @@ public class CameraView extends Thread{
                 return;
             camManager.openCamera(cameraId, deviceCallback, null);
         } catch (CameraAccessException e) {
-            e.printStackTrace();
+            Log.e("CameraView", "Error", e);
         }
     }
 
@@ -213,9 +213,7 @@ public class CameraView extends Thread{
                 }
             }
         } catch (CameraAccessException e) {
-            String msg = "Error: CameraAccessException:" +
-                    e.getMessage();
-            Log.e(TAG, msg);
+            Log.e(TAG, "Error: CameraAccessException:", e);
         }
         return null;
     }
@@ -324,7 +322,7 @@ public class CameraView extends Thread{
                         }
                     }, null);
         } catch (CameraAccessException e){
-            e.printStackTrace();
+            Log.e(TAG, "Error", e);
         }
     }
 
