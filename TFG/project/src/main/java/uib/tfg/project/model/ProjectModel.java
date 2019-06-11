@@ -55,12 +55,12 @@ public class ProjectModel implements Model{
         }
 
         pictureCursor.moveToFirst();
+        hash_mutex.acquire();
         do{
             PictureObject po = PictureDB.toPictureObject(pictureCursor);
-            hash_mutex.acquire();
             picture_hash.addPicture(po);
-            hash_mutex.release();
         }while(pictureCursor.moveToNext());
+        hash_mutex.release();
     }
 
     //Can't only be used for one thread OpenGL
@@ -215,13 +215,22 @@ public class ProjectModel implements Model{
         int final_x_box = user_box.x + PictureBox.BOX_RANGE;
         int final_y_box = user_box.y + PictureBox.BOX_RANGE;
 
-        for (int x= init_x_box; x <= final_x_box ; x++){
-            for (int y = init_y_box; y <= final_y_box ; y++){
-                PictureBox actual_box = picture_hash.getPictureBox(x, y);
-                if(actual_box != null){
-                    loadPicturesFromBoxInCache(actual_box);
-                    newNearestPictures = appendPicturesFromBox(newNearestPictures, actual_box);
+        try{
+            hash_mutex.acquire();
+            for (int x= init_x_box; x <= final_x_box ; x++){
+                for (int y = init_y_box; y <= final_y_box ; y++){
+                    PictureBox actual_box = picture_hash.getPictureBox(x, y);
+                    if(actual_box != null){
+                        loadPicturesFromBoxInCache(actual_box);
+                        newNearestPictures = appendPicturesFromBox(newNearestPictures, actual_box);
+                    }
                 }
+            }
+            hash_mutex.release();
+        }catch(Exception e){
+            Log.e("Model", "exception", e);
+            if(hash_mutex.availablePermits() <= 0){
+                hash_mutex.release();
             }
         }
         oldNearestPictures = nearestPictures;
