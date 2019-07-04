@@ -20,8 +20,8 @@ public class LocationService{
     private String TAG;
     private Model model;
     private static volatile int threadNumber = 1;
-    private final long INIT_TIME = 50; // in milliseconds
-    private final float INIT_DIST = 1; // in meters
+    private final long INIT_TIME = 0; // in milliseconds
+    private final float INIT_DIST = 0; // in meters
     private final int HALF_MINUTE = 1000 * 30;
     private volatile boolean running = false;
     private boolean GPS_ENABLED = false;
@@ -37,10 +37,14 @@ public class LocationService{
 
         @Override
         public void onLocationChanged(Location location) {
-            if(isBetterLocation(location, model.getUserCurrentLocation())){
-                model.setUserCurrentLocation(location);
-                Log.d(TAG, "Actual location is Latitude: "+location.getLatitude()+
-                        " , and Longitude: "+location.getLongitude()+ ".");
+            try{
+                if(isBetterLocation(location, model.getUserCurrentLocation())){
+                    model.setUserCurrentLocation(location);
+                    Log.d(TAG, "Actual location is Latitude: "+location.getLatitude()+
+                            " , and Longitude: "+location.getLongitude()+ ".");
+                }
+            }catch(Exception e){
+                Log.e("Location Error", "Error updating location", e);
             }
         }
 
@@ -95,7 +99,7 @@ public class LocationService{
         float accuracy = location.getAccuracy() - currentBestLocation.getAccuracy();
         boolean isLessAccurate = accuracy > 0;
         boolean isMoreAccurate = accuracy < 0;
-        boolean isSignificantlyLessAccurate = accuracy > 10;
+        boolean isSignificantlyLessAccurate = accuracy > 15;
 
         boolean isFromSameProvider = isSameProvider(location.getProvider()
                 ,currentBestLocation.getProvider());
